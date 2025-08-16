@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nick K - Math & Physics Self-Study</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f8f8f8; color: #222; }
+        header { background: #2d3e50; color: #fff; padding: 2rem 1rem; text-align: center; }
+        nav { background: #eaeaea; padding: 0.5rem 1rem; text-align: center; }
+        nav a { margin: 0 1rem; color: #2d3e50; text-decoration: none; font-weight: bold; }
+        main { max-width: 800px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px #ccc; }
+        h1, h2 { margin-top: 0; }
+        .blog-list { list-style: none; padding: 0; }
+        .blog-list li { margin-bottom: 1.5rem; }
+        .blog-post { border-top: 1px solid #eee; padding-top: 1.5rem; margin-top: 1.5rem; }
+        .edit-form { margin-top: 1rem; }
+        label { display: block; margin-top: 1rem; }
+        input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
+        button { margin-top: 1rem; padding: 0.5rem 1rem; background: #2d3e50; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #1a2533; }
+        footer { text-align: center; padding: 2rem 1rem; color: #888; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Nick K</h1>
+        <p>Self-studying Mathematics & Physics</p>
+    </header>
+    <nav>
+        <a href="#about">About</a>
+        <a href="#progress">Progress</a>
+        <a href="#blog">Blog</a>
+    </nav>
+    <main>
+        <section id="about">
+            <h2>About Me</h2>
+            <p>
+                Welcome! I'm Nick, and I've been self-studying mathematics and physics. This site documents my journey, progress, and reflections.
+            </p>
+        </section>
+        <section id="progress">
+            <h2>Study Goals</h2>
+            <ul>
+                <li><strong>Algebraic Geometry:</strong> Commutative algebra, sheaves, schemes</li>
+                <li><strong>Functional Analysis:</strong> Real analysis, measure theory, functional analysis</li>
+                <li><strong>Geometry:</strong> Differential geometry, topology, algebraic topology</li>
+                <li><strong>Physics:</strong> Quantum field theory, relativity, string theory</li>
+                <!-- Add more fields as you progress -->
+            </ul>
+        </section>
+        <section id="blog">
+            <h2>Blog</h2>
+            <ul class="blog-list" id="blog-list">
+                <!-- Blog posts will appear here -->
+            </ul>
+            <div class="edit-form">
+                <h3>New Blog Post</h3>
+                <form id="blog-form">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" required>
+                    <label for="content">Content</label>
+                    <textarea id="content" rows="5" required></textarea>
+                    <button type="submit">Add Post</button>
+                </form>
+            </div>
+        </section>
+    </main>
+    <footer>
+        &copy; 2025 Nick K. All rights reserved.
+    </footer>
+    <script>
+        // Simple in-browser blog post management
+        const blogList = document.getElementById('blog-list');
+        const blogForm = document.getElementById('blog-form');
+        let posts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
+
+        function renderPosts() {
+            blogList.innerHTML = '';
+            posts.forEach((post, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="blog-post">
+                        <h4>${post.title}</h4>
+                        <p>${post.content.replace(/\n/g, '<br>')}</p>
+                        <button onclick="editPost(${idx})">Edit</button>
+                        <button onclick="deletePost(${idx})">Delete</button>
+                    </div>
+                `;
+                blogList.appendChild(li);
+            });
+        }
+
+        blogForm.onsubmit = function(e) {
+            e.preventDefault();
+            const title = document.getElementById('title').value.trim();
+            const content = document.getElementById('content').value.trim();
+            if (title && content) {
+                posts.unshift({ title, content });
+                localStorage.setItem('blogPosts', JSON.stringify(posts));
+                renderPosts();
+                blogForm.reset();
+            }
+        };
+
+        window.editPost = function(idx) {
+            const post = posts[idx];
+            document.getElementById('title').value = post.title;
+            document.getElementById('content').value = post.content;
+            blogForm.onsubmit = function(e) {
+                e.preventDefault();
+                post.title = document.getElementById('title').value.trim();
+                post.content = document.getElementById('content').value.trim();
+                posts[idx] = post;
+                localStorage.setItem('blogPosts', JSON.stringify(posts));
+                renderPosts();
+                blogForm.reset();
+                blogForm.onsubmit = blogFormSubmit;
+            };
+        };
+
+        window.deletePost = function(idx) {
+            if (confirm('Delete this post?')) {
+                posts.splice(idx, 1);
+                localStorage.setItem('blogPosts', JSON.stringify(posts));
+                renderPosts();
+            }
+        };
+
+        // Save original submit handler for edit mode
+        const blogFormSubmit = blogForm.onsubmit;
+        renderPosts();
+    </script>
+</body>
+</html>
