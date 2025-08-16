@@ -146,6 +146,7 @@
                                 <input type="checkbox" data-index="${idx}" onchange="updateSelectedPosts(${idx})">
                                 Select for deletion
                             </label>
+                            <button onclick="editPublishedPost(${idx})">Edit Post</button>
                         </div>
                         ` : ''}
                     </div>
@@ -301,6 +302,73 @@
                 selectedPosts.add(idx);
             }
         }
+
+        window.editPublishedPost = function(idx) {
+            const post = posts[idx];
+            document.getElementById('title').value = post.title;
+            document.getElementById('content').value = post.content;
+            
+            // Store the original form submit handler
+            const originalSubmit = blogForm.onsubmit;
+            
+            blogForm.onsubmit = async function(e) {
+                e.preventDefault();
+                const updatedPost = {
+                    title: document.getElementById('title').value.trim(),
+                    content: document.getElementById('content').value.trim(),
+                    date: post.date // Keep original date
+                };
+                
+                try {
+                    // Get current content
+                    const response = await fetch('https://api.github.com/repos/kimolas/kimolas.github.io/contents/posts.js', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('github_token')}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (!response.ok) throw new Error('Failed to fetch posts.js');
+                    
+                    const fileInfo = await response.json();
+                    
+                    // Update the post in the array
+                    const updatedPosts = [...posts];
+                    updatedPosts[idx] = updatedPost;
+                    
+                    const updatedContent = `// To add a new post, copy the format below and add it to the top of the list.
+// The date is optional but recommended.
+const posts = [
+${updatedPosts.map(p => generatePostCode(p)).join(',\n')}
+];`;
+
+                    // Update the file
+                    const updateResponse = await fetch('https://api.github.com/repos/kimolas/kimolas.github.io/contents/posts.js', {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('github_token')}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: `Edit blog post: ${updatedPost.title}`,
+                            content: btoa(updatedContent),
+                            sha: fileInfo.sha
+                        })
+                    });
+
+                    if (!updateResponse.ok) throw new Error('Failed to update posts.js');
+
+                    alert('Post updated successfully! Reloading...');
+                    blogForm.reset();
+                    blogForm.onsubmit = originalSubmit;
+                    await loadPosts();
+                } catch (error) {
+                    console.error('Error updating post:', error);
+                    alert('Failed to update post. Please check your token and try again.');
+                }
+            };
+        };
 
         async function saveChanges() {
             if (selectedPosts.size === 0) {
