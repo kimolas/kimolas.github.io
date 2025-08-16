@@ -2,6 +2,11 @@
 // The date is optional but recommended.
 const posts = [
     {
+        title: "Testing again",
+        date: "2025-08-16",
+        content: `with cache updating thing`
+    },
+    {
         title: "Testing",
         date: "2025-08-16",
         content: `testing posting functionality`
