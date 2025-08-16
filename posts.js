@@ -2,6 +2,11 @@
 // The date is optional but recommended.
 const posts = [
     {
+        title: "Testing",
+        date: "2025-08-16",
+        content: `testing posting functionality`
+    },
+    {
         title: "Welcome to my Blog",
         date: "2025-08-16",
         content: `This is my first post. I'll be using this space to document my journey as I study mathematics and physics.
