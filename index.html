@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <title>Nick K - Math & Physics Self-Study</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- KaTeX dependencies -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f8f8f8; color: #222; }
         header { background: #2d3e50; color: #fff; padding: 2rem 1rem; text-align: center; }
@@ -116,6 +120,18 @@
     }`;
         }
 
+        // Render LaTeX in a given element
+        function renderMath(element) {
+            renderMathInElement(element, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false},
+                    {left: "\\(", right: "\\)", display: false},
+                    {left: "\\[", right: "\\]", display: true}
+                ]
+            });
+        }
+
         function renderPosts() {
             blogList.innerHTML = '';
             
@@ -135,6 +151,7 @@
                     </div>
                 `;
                 blogList.appendChild(li);
+                renderMath(li); // Render any LaTeX in the draft
             });
 
             // Render published posts
@@ -157,6 +174,7 @@
                     </div>
                 `;
                 blogList.appendChild(li);
+                renderMath(li); // Render any LaTeX in the published post
             });
         }
 
