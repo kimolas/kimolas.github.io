@@ -51,6 +51,11 @@
         </section>
         <section id="blog">
             <h2>Blog</h2>
+            <div id="admin-controls" style="display: none; margin-bottom: 1rem;">
+                <button onclick="toggleEditMode()" id="edit-mode-button">Enable Edit Mode</button>
+                <button onclick="saveChanges()" id="save-changes-button" style="display: none;">Save Changes</button>
+                <button onclick="cancelChanges()" id="cancel-changes-button" style="display: none;">Cancel</button>
+            </div>
             <ul class="blog-list" id="blog-list">
                 <!-- Blog posts will appear here -->
             </ul>
@@ -128,13 +133,21 @@
             });
 
             // Render published posts
-            posts.forEach((post) => {
+            posts.forEach((post, idx) => {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <div class="blog-post">
                         <h4>${post.title}</h4>
                         ${post.date ? `<p><em>${post.date}</em></p>` : ''}
                         <p>${post.content.replace(/\n/g, '<br>')}</p>
+                        ${isEditMode ? `
+                        <div class="edit-controls">
+                            <label>
+                                <input type="checkbox" data-index="${idx}" onchange="updateSelectedPosts(${idx})">
+                                Select for deletion
+                            </label>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
                 blogList.appendChild(li);
@@ -263,8 +276,98 @@
         // Save original submit handler for edit mode
         const blogFormSubmit = blogForm.onsubmit;
         
+        let isEditMode = false;
+        let selectedPosts = new Set();
+
+        // Check if admin controls should be shown
+        function checkAdminAccess() {
+            const token = localStorage.getItem('github_token');
+            document.getElementById('admin-controls').style.display = token ? 'block' : 'none';
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            document.getElementById('edit-mode-button').textContent = isEditMode ? 'Disable Edit Mode' : 'Enable Edit Mode';
+            document.getElementById('save-changes-button').style.display = isEditMode ? 'inline-block' : 'none';
+            document.getElementById('cancel-changes-button').style.display = isEditMode ? 'inline-block' : 'none';
+            selectedPosts.clear();
+            renderPosts();
+        }
+
+        function updateSelectedPosts(idx) {
+            if (selectedPosts.has(idx)) {
+                selectedPosts.delete(idx);
+            } else {
+                selectedPosts.add(idx);
+            }
+        }
+
+        async function saveChanges() {
+            if (selectedPosts.size === 0) {
+                alert('No posts selected');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete ${selectedPosts.size} post(s)?`)) {
+                return;
+            }
+
+            try {
+                // Get current content
+                const response = await fetch('https://api.github.com/repos/kimolas/kimolas.github.io/contents/posts.js', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('github_token')}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch posts.js');
+                
+                const fileInfo = await response.json();
+                
+                // Create new posts array without the selected posts
+                const updatedPosts = posts.filter((_, idx) => !selectedPosts.has(idx));
+                const updatedContent = `// To add a new post, copy the format below and add it to the top of the list.
+// The date is optional but recommended.
+const posts = [
+${updatedPosts.map(post => generatePostCode(post)).join(',\n')}
+];`;
+
+                // Update the file
+                const updateResponse = await fetch('https://api.github.com/repos/kimolas/kimolas.github.io/contents/posts.js', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('github_token')}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `Delete ${selectedPosts.size} post(s)`,
+                        content: btoa(updatedContent),
+                        sha: fileInfo.sha
+                    })
+                });
+
+                if (!updateResponse.ok) throw new Error('Failed to update posts.js');
+
+                alert('Posts deleted successfully! Reloading...');
+                selectedPosts.clear();
+                toggleEditMode();
+                await loadPosts();
+            } catch (error) {
+                console.error('Error updating posts:', error);
+                alert('Failed to delete posts. Please check your token and try again.');
+            }
+        }
+
+        function cancelChanges() {
+            selectedPosts.clear();
+            toggleEditMode();
+        }
+
         // Initial load of posts
         loadPosts();
+        checkAdminAccess();
     </script>
 </body>
 </html>
