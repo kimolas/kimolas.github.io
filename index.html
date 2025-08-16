@@ -3,16 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Nick K - Math & Physics Self-Study</title>
-    <meta name="viewport" content="wid                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div class="blog-post">
-                        <h4>${post.title}</h4>
-                        ${post.date ? `<p><em>${post.date}</em></p>` : ''}
-                        <div class="post-content">${post.content.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('')}</div>
-                        ${isEditMode ? `
-                        <div class="edit-controls">
-                            <label>
-                                <input type="checkbox" data-index="${idx}" onchange="updateSelectedPosts(${idx})">`width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- KaTeX dependencies -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
@@ -39,7 +30,9 @@
         button:hover { background: #1a2533; }
         .post-content p { margin: 0.5em 0; }
         .post-content p:empty { display: none; }
-        .katex-display { overflow-x: auto; overflow-y: hidden; }
+        .math-display { margin: 1em 0; text-align: center; }
+        .katex-display { overflow-x: auto; overflow-y: hidden; padding: 1em 0; }
+        .katex { text-rendering: auto; }
     </style>
 </head>
 <body>
@@ -134,7 +127,8 @@
         // Render LaTeX in a given element
         function renderMath(element) {
             renderMathInElement(element, {
-                delimiters: [
+                delimiters:
+                [
                     {left: "\\[", right: "\\]", display: true},
                     {left: "\\(", right: "\\)", display: false},
                     {left: "$$", right: "$$", display: true},
@@ -148,18 +142,25 @@
         function renderPosts() {
             blogList.innerHTML = '';
             
+            function formatContent(content) {
+                return content.split('\n').map(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return '';
+                    if (trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
+                        return `<div class="math-display">${trimmed}</div>`;
+                    }
+                    return `<p>${trimmed}</p>`;
+                }).join('');
+            }
+            
             // Render drafts first
             draftPosts.forEach((post, idx) => {
                 const li = document.createElement('li');
-                // Create a div to hold the content and parse it
-                const contentDiv = document.createElement('div');
-                contentDiv.textContent = post.content;
-                
                 li.innerHTML = `
                     <div class="blog-post">
                         <h4>${post.title} (Draft)</h4>
                         ${post.date ? `<p><em>${post.date}</em></p>` : ''}
-                        <div class="post-content">${post.content.split('\n').map(line => `<p>${line}</p>`).join('')}</div>
+                        <div class="post-content">${formatContent(post.content)}</div>
                         <div>
                             <button onclick="editPost(${idx})">Edit</button>
                             <button onclick="deletePost(${idx})">Delete</button>
@@ -178,7 +179,7 @@
                     <div class="blog-post">
                         <h4>${post.title}</h4>
                         ${post.date ? `<p><em>${post.date}</em></p>` : ''}
-                        <p>${post.content.replace(/\n/g, '<br>')}</p>
+                        <div class="post-content">${formatContent(post.content)}</div>
                         ${isEditMode ? `
                         <div class="edit-controls">
                             <label>
@@ -433,13 +434,11 @@ ${updatedPosts.map(p => generatePostCode(p)).join(',\n')}
                 
                 // Create new posts array without the selected posts
                 const updatedPosts = posts.filter((_, idx) => !selectedPosts.has(idx));
-                const updatedContent = `// To add a new post, copy the format below and add it to the top of the list.
+                    const updatedContent = `// To add a new post, copy the format below and add it to the top of the list.
 // The date is optional but recommended.
 const posts = [
-${updatedPosts.map(post => generatePostCode(post)).join(',\n')}
-];`;
-
-                // Update the file
+${updatedPosts.map(p => generatePostCode(p)).join(',\n')}
+];`;                // Update the file
                 const updateResponse = await fetch('https://api.github.com/repos/kimolas/kimolas.github.io/contents/posts.js', {
                     method: 'PUT',
                     headers: {
