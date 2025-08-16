@@ -116,7 +116,7 @@
             return `    {
         title: "${post.title.replace(/"/g, '\\"')}",
         date: "${post.date || formatDate(new Date())}",
-        content: \`${post.content.replace(/`/g, '\\`')}\`
+        content: \`${post.content.replace(/\\/g, '\\\\').replace(/`/g, '\\`')}\`
     }`;
         }
 
