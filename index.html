@@ -69,8 +69,26 @@
     <footer>
         &copy; 2025 Nick K. All rights reserved.
     </footer>
-    <script src="posts.js"></script>
     <script>
+        // Load posts.js with cache busting
+        function loadPosts(timestamp = Date.now()) {
+            return new Promise((resolve, reject) => {
+                const oldScript = document.querySelector('script[src*="posts.js"]');
+                if (oldScript) {
+                    oldScript.remove();
+                }
+                
+                const script = document.createElement('script');
+                script.src = `posts.js?v=${timestamp}`;
+                script.onload = () => {
+                    renderPosts();
+                    resolve();
+                };
+                script.onerror = reject;
+                document.body.appendChild(script);
+            });
+        }
+
         // Blog management with draft support
         const blogList = document.getElementById('blog-list');
         const blogForm = document.getElementById('blog-form');
@@ -234,17 +252,19 @@
             if (confirm('Publish this post?')) {
                 const published = await publishToGitHub(postCode);
                 if (published) {
-                    alert('Post published successfully! The changes will be visible on your site in a few minutes.');
+                    alert('Post published successfully! Reloading posts...');
                     draftPosts.splice(idx, 1);
                     localStorage.setItem('draftPosts', JSON.stringify(draftPosts));
-                    renderPosts();
+                    await loadPosts(); // Reload posts.js with cache busting
                 }
             }
         };
 
         // Save original submit handler for edit mode
         const blogFormSubmit = blogForm.onsubmit;
-        renderPosts();
+        
+        // Initial load of posts
+        loadPosts();
     </script>
 </body>
 </html>
