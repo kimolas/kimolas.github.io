@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <title>Nick K - Math & Physics Self-Study</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="wid                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="blog-post">
+                        <h4>${post.title}</h4>
+                        ${post.date ? `<p><em>${post.date}</em></p>` : ''}
+                        <div class="post-content">${post.content.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('')}</div>
+                        ${isEditMode ? `
+                        <div class="edit-controls">
+                            <label>
+                                <input type="checkbox" data-index="${idx}" onchange="updateSelectedPosts(${idx})">`width, initial-scale=1">
     <!-- KaTeX dependencies -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
@@ -28,7 +37,9 @@
         input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
         button { margin-top: 1rem; padding: 0.5rem 1rem; background: #2d3e50; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background: #1a2533; }
-        footer { text-align: center; padding: 2rem 1rem; color: #888; }
+        .post-content p { margin: 0.5em 0; }
+        .post-content p:empty { display: none; }
+        .katex-display { overflow-x: auto; overflow-y: hidden; }
     </style>
 </head>
 <body>
@@ -140,11 +151,15 @@
             // Render drafts first
             draftPosts.forEach((post, idx) => {
                 const li = document.createElement('li');
+                // Create a div to hold the content and parse it
+                const contentDiv = document.createElement('div');
+                contentDiv.textContent = post.content;
+                
                 li.innerHTML = `
                     <div class="blog-post">
                         <h4>${post.title} (Draft)</h4>
                         ${post.date ? `<p><em>${post.date}</em></p>` : ''}
-                        <p>${post.content.replace(/\n/g, '<br>')}</p>
+                        <div class="post-content">${post.content.split('\n').map(line => `<p>${line}</p>`).join('')}</div>
                         <div>
                             <button onclick="editPost(${idx})">Edit</button>
                             <button onclick="deletePost(${idx})">Delete</button>
