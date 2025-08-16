@@ -69,22 +69,54 @@
     <footer>
         &copy; 2025 Nick K. All rights reserved.
     </footer>
+    <script src="posts.js"></script>
     <script>
-        // Simple in-browser blog post management
+        // Blog management with draft support
         const blogList = document.getElementById('blog-list');
         const blogForm = document.getElementById('blog-form');
-        let posts = JSON.parse(localStorage.getItem('blogPosts') || '[]');
+        let draftPosts = JSON.parse(localStorage.getItem('draftPosts') || '[]');
+        
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function generatePostCode(post) {
+            return `    {
+        title: "${post.title.replace(/"/g, '\\"')}",
+        date: "${post.date || formatDate(new Date())}",
+        content: \`${post.content.replace(/`/g, '\\`')}\`
+    }`;
+        }
 
         function renderPosts() {
             blogList.innerHTML = '';
-            posts.forEach((post, idx) => {
+            
+            // Render drafts first
+            draftPosts.forEach((post, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="blog-post">
+                        <h4>${post.title} (Draft)</h4>
+                        ${post.date ? `<p><em>${post.date}</em></p>` : ''}
+                        <p>${post.content.replace(/\n/g, '<br>')}</p>
+                        <div>
+                            <button onclick="editPost(${idx})">Edit</button>
+                            <button onclick="deletePost(${idx})">Delete</button>
+                            <button onclick="publishPost(${idx})">Publish</button>
+                        </div>
+                    </div>
+                `;
+                blogList.appendChild(li);
+            });
+
+            // Render published posts
+            posts.forEach((post) => {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <div class="blog-post">
                         <h4>${post.title}</h4>
+                        ${post.date ? `<p><em>${post.date}</em></p>` : ''}
                         <p>${post.content.replace(/\n/g, '<br>')}</p>
-                        <button onclick="editPost(${idx})">Edit</button>
-                        <button onclick="deletePost(${idx})">Delete</button>
                     </div>
                 `;
                 blogList.appendChild(li);
@@ -96,23 +128,27 @@
             const title = document.getElementById('title').value.trim();
             const content = document.getElementById('content').value.trim();
             if (title && content) {
-                posts.unshift({ title, content });
-                localStorage.setItem('blogPosts', JSON.stringify(posts));
+                draftPosts.unshift({ 
+                    title, 
+                    content,
+                    date: formatDate(new Date())
+                });
+                localStorage.setItem('draftPosts', JSON.stringify(draftPosts));
                 renderPosts();
                 blogForm.reset();
             }
         };
 
         window.editPost = function(idx) {
-            const post = posts[idx];
+            const post = draftPosts[idx];
             document.getElementById('title').value = post.title;
             document.getElementById('content').value = post.content;
             blogForm.onsubmit = function(e) {
                 e.preventDefault();
                 post.title = document.getElementById('title').value.trim();
                 post.content = document.getElementById('content').value.trim();
-                posts[idx] = post;
-                localStorage.setItem('blogPosts', JSON.stringify(posts));
+                draftPosts[idx] = post;
+                localStorage.setItem('draftPosts', JSON.stringify(draftPosts));
                 renderPosts();
                 blogForm.reset();
                 blogForm.onsubmit = blogFormSubmit;
@@ -120,10 +156,89 @@
         };
 
         window.deletePost = function(idx) {
-            if (confirm('Delete this post?')) {
-                posts.splice(idx, 1);
-                localStorage.setItem('blogPosts', JSON.stringify(posts));
+            if (confirm('Delete this draft?')) {
+                draftPosts.splice(idx, 1);
+                localStorage.setItem('draftPosts', JSON.stringify(draftPosts));
                 renderPosts();
+            }
+        };
+
+        async function publishToGitHub(content) {
+            // You'll need to create a personal access token at https://github.com/settings/tokens
+            // with 'repo' scope and store it here
+            const token = localStorage.getItem('github_token');
+            
+            if (!token) {
+                const newToken = prompt('Please enter your GitHub Personal Access Token (create one at https://github.com/settings/tokens with repo scope):');
+                if (newToken) {
+                    localStorage.setItem('github_token', newToken);
+                } else {
+                    alert('A token is required to publish posts.');
+                    return false;
+                }
+            }
+
+            try {
+                // First, get the current file content and SHA
+                const response = await fetch('https://api.github.com/repos/kimolas/kimolas.github.io/contents/posts.js', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('github_token')}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch current file');
+                }
+
+                const fileInfo = await response.json();
+                const currentContent = atob(fileInfo.content);
+                
+                // Insert the new post at the start of the posts array
+                const updatedContent = currentContent.replace(
+                    'const posts = [',
+                    'const posts = [\n' + content + ','
+                );
+
+                // Update the file in the repository
+                const updateResponse = await fetch('https://api.github.com/repos/kimolas/kimolas.github.io/contents/posts.js', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('github_token')}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `Add new blog post: ${content.split('title: "')[1].split('"')[0]}`,
+                        content: btoa(updatedContent),
+                        sha: fileInfo.sha
+                    })
+                });
+
+                if (!updateResponse.ok) {
+                    throw new Error('Failed to update file');
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Error publishing to GitHub:', error);
+                alert('Failed to publish post. Please check your token and try again.');
+                return false;
+            }
+        }
+
+        window.publishPost = async function(idx) {
+            const post = draftPosts[idx];
+            const postCode = generatePostCode(post);
+            
+            if (confirm('Publish this post?')) {
+                const published = await publishToGitHub(postCode);
+                if (published) {
+                    alert('Post published successfully! The changes will be visible on your site in a few minutes.');
+                    draftPosts.splice(idx, 1);
+                    localStorage.setItem('draftPosts', JSON.stringify(draftPosts));
+                    renderPosts();
+                }
             }
         };
 
