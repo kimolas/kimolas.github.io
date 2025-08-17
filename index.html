@@ -5,37 +5,9 @@
     <title>Mathematics & Physics Self-Study</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- KaTeX dependencies -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist        // Initialize KaTeX rendering
-        function initializeKaTeX() {
-            if (typeof renderMathInElement === 'function') {
-                const options = {
-                    delimiters: [
-                        {left: "$$", right: "$$", display: true},
-                        {left: "$", right: "$", display: false}
-                    ],
-                    throwOnError: false,
-                    output: 'html'
-                };
-                
-                // Render any existing math content
-                renderMathInElement(document.body, options);
-                
-                // Re-render posts to ensure math is displayed
-                displayPosts();
-            } else {
-                console.warn('KaTeX not loaded yet, retrying...');
-                setTimeout(initializeKaTeX, 100);
-            }
-        }
-
-        // Ensure KaTeX is initialized after script loads
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            initializeKaTeX();
-        } else {
-            document.addEventListener('DOMContentLoaded', initializeKaTeX);
-        }ss">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="initializeKaTeX()"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
     <style>
         body { 
             font-family: 'Segoe UI', Arial, sans-serif; 
@@ -182,9 +154,9 @@
             
             // First try to load posts from posts.js
             let loadedPosts = [];
-            if (typeof posts !== 'undefined' && Array.isArray(posts)) {
-                console.log('Found posts.js data:', posts.length, 'posts');
-                loadedPosts = posts.map(post => ({
+            if (typeof defaultPosts !== 'undefined' && Array.isArray(defaultPosts)) {
+                console.log('Found posts.js data:', defaultPosts.length, 'posts');
+                loadedPosts = defaultPosts.map(post => ({
                     title: post.title,
                     content: post.content,
                     createdAt: post.createdDate ? new Date(post.createdDate).toISOString() : new Date().toISOString(),
@@ -216,9 +188,35 @@
             console.log('Total posts loaded:', loadedPosts.length);
             return loadedPosts;
         }
+        
+        // Function to initialize KaTeX
+        function initializeKaTeX() {
+            if (typeof renderMathInElement === 'function') {
+                const options = {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ],
+                    throwOnError: false,
+                    output: 'html'
+                };
+                renderMathInElement(document.body, options);
+                displayPosts();
+            } else {
+                console.warn('KaTeX not loaded yet, retrying...');
+                setTimeout(initializeKaTeX, 100);
+            }
+        }
 
-        // Load all posts
-        let posts = loadPosts();
+        // Initialize everything when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load all posts
+            let blogPosts = loadPosts();
+            window.posts = blogPosts; // Store posts in window scope
+            
+            // Initialize KaTeX
+            initializeKaTeX();
+        });
         let editMode = false;
 
         function displayPosts() {
