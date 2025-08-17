@@ -97,9 +97,7 @@
         <div class="left-column">
             <section id="about" class="content-box">
                 <h2>About Me</h2>
-                <p>
-                    Welcome! I'm Nick, and I've been self-studying mathematics and physics. This site documents my journey, progress, and reflections.
-                </p>
+                <p>Welcome! I'm Nick, and I've been self-studying mathematics and physics. This site documents my journey, progress, and reflections.</p>
             </section>
             <section id="progress" class="content-box">
                 <h2>Study Goals</h2>
@@ -114,7 +112,7 @@
         <div class="right-column">
             <div class="blog-container">
                 <section id="blog" class="content-box">
-                    <h2>Blog <a href="admin.html" style="font-size: 0.8em; margin-left: 1em; text-decoration: none;">✏️ Edit</a></h2>
+                    <h2>Blog</h2>
                     <div class="blog-posts">
                         <ul class="blog-list" id="blog-list">
                             <!-- Blog posts will appear here -->
@@ -202,7 +200,7 @@
                 throwOnError: false,
                 output: 'html',
                 strict: false,
-                macros: katexMacros
+                macros: (typeof katexMacros !== 'undefined' ? katexMacros : {})
             };
             
             if (typeof renderMathInElement === 'function') {

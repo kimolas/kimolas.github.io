@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hidden Blog Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin:0; background:#f8f8f8; color:#222 }
+        main { max-width:1400px; margin:2rem auto; padding:0 2rem }
+        .content-box{ background:#fff; padding:2rem; border-radius:8px; box-shadow:0 2px 8px #ccc; margin-bottom:2rem }
+        .admin-controls{ margin-bottom:1rem }
+        .blog-list{ list-style:none; padding:0; margin:0 }
+        .preview{ margin-top:1rem; padding:1rem; border:1px solid #eee; border-radius:4px; background:#fafafa }
+        .password-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); }
+        .password-box{ background:#fff; padding:1.5rem; border-radius:8px; width:320px; box-shadow:0 4px 20px rgba(0,0,0,0.2) }
+        .password-box input{ width:100%; padding:0.5rem; margin-top:0.5rem; box-sizing:border-box }
+        .error{ color:#e74c3c; margin-top:0.5rem; display:none }
+    </style>
+</head>
+<body>
+    <main>
+        <section class="content-box">
+            <h2>Hidden Blog Admin</h2>
+            <div class="admin-controls">
+                <button onclick="toggleEditMode()" id="edit-mode-button">Enable Edit Mode</button>
+                <button onclick="saveChanges()" id="save-changes-button" style="display:none">Save Changes</button>
+                <button onclick="cancelChanges()" id="cancel-changes-button" style="display:none">Cancel</button>
+            </div>
+            <div class="blog-posts">
+                <ul class="blog-list" id="blog-list"></ul>
+            </div>
+        </section>
+        <section class="content-box">
+            <h3>New Blog Post</h3>
+            <form id="blog-form">
+                <label for="title">Title</label>
+                <input type="text" id="title" required>
+                <label for="content">Content</label>
+                <textarea id="content" rows="5" required></textarea>
+                <div class="preview"><h4>Preview</h4><div id="preview-content"></div></div>
+                <button type="submit">Add Post</button>
+            </form>
+        </section>
+    </main>
+
+    <!-- No password modal: hidden admin page accessible directly -->
+
+    <script src="katex-macros.js"></script>
+    <script src="posts.js"></script>
+    <script>
+        // No local password protection — admin page is hidden by obscurity.
+        // The app initializes immediately below.
+
+        // --- Admin app code (based on previous admin.html) ---
+        let posts = [];
+        let editMode = false;
+
+        function renderMathInEl(el){
+            if(typeof renderMathInElement === 'function'){
+                try{ renderMathInElement(el, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}], throwOnError:false, macros:(typeof katexMacros !== 'undefined' ? katexMacros : {})}); }
+                catch(e){console.error(e)}
+            }
+        }
+
+        function initializeKaTeX(){ renderMathInEl(document.body); }
+
+        function loadPosts(){
+            let loadedPosts = [];
+            if(typeof defaultPosts !== 'undefined' && Array.isArray(defaultPosts)){
+                loadedPosts = defaultPosts.map(p=>({ title:p.title, content:p.content, createdAt:p.createdDate?new Date(p.createdDate).toISOString():new Date().toISOString(), editedAt:p.lastEdited?new Date(p.lastEdited).toISOString():null }));
+            }
+            try{
+                const localPosts = JSON.parse(localStorage.getItem('blog-posts')||'[]');
+                localPosts.forEach(lp=>{ const exists = loadedPosts.some(fp=>fp.title===lp.title && new Date(fp.createdAt).getTime()===new Date(lp.createdAt).getTime()); if(!exists) loadedPosts.push(lp); });
+            }catch(e){console.error(e)}
+            return loadedPosts;
+        }
+
+        function displayPosts(){
+            const blogList = document.getElementById('blog-list'); if(!blogList) return;
+            blogList.innerHTML=''; posts.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+            posts.forEach((post,index)=>{
+                if(!post||!post.title||!post.content) return;
+                const li=document.createElement('li');
+                const article=document.createElement('article'); article.className='blog-post';
+                const header=document.createElement('h3'); header.textContent=post.title; article.appendChild(header);
+                const dates=document.createElement('div'); dates.innerHTML=`<small>Created: ${new Date(post.createdAt).toLocaleDateString()}</small>${post.editedAt?`<br><small>Last edited: ${new Date(post.editedAt).toLocaleDateString()}</small>`:''}`; article.appendChild(dates);
+                const content=document.createElement('div'); content.className='post-content'; content.innerHTML=post.content; article.appendChild(content);
+                if(editMode){ const controls=document.createElement('div'); controls.className='edit-controls'; const editButton=document.createElement('button'); editButton.textContent='Edit'; editButton.onclick=()=>editPost(index); const deleteButton=document.createElement('button'); deleteButton.textContent='Delete'; deleteButton.onclick=()=>deletePost(index); controls.appendChild(editButton); controls.appendChild(deleteButton); article.appendChild(controls); }
+                li.appendChild(article); blogList.appendChild(li);
+            });
+            initializeKaTeX();
+        }
+
+        function editPost(index){ const post=posts[index]; document.getElementById('title').value=post.title; document.getElementById('content').value=post.content; document.getElementById('preview-content').innerHTML=post.content; posts.splice(index,1); post.editedAt=new Date().toISOString(); localStorage.setItem('blog-posts', JSON.stringify(posts)); displayPosts(); initializeKaTeX(); }
+        function deletePost(index){ if(confirm('Are you sure you want to delete this post?')){ posts.splice(index,1); localStorage.setItem('blog-posts', JSON.stringify(posts)); displayPosts(); }}
+
+        function toggleEditMode(){ editMode=!editMode; document.getElementById('edit-mode-button').textContent = editMode? 'Disable Edit Mode':'Enable Edit Mode'; document.getElementById('save-changes-button').style.display = editMode? 'inline':'none'; document.getElementById('cancel-changes-button').style.display = editMode? 'inline':'none'; displayPosts(); }
+        function saveChanges(){ localStorage.setItem('blog-posts', JSON.stringify(posts)); toggleEditMode(); }
+        function cancelChanges(){ posts = loadPosts(); toggleEditMode(); }
+
+        document.getElementById('blog-form').addEventListener('submit', function(e){ e.preventDefault(); const title=document.getElementById('title').value; const content=document.getElementById('content').value; if(title && content){ posts.push({ title, content, createdAt: new Date().toISOString(), editedAt: null }); localStorage.setItem('blog-posts', JSON.stringify(posts)); document.getElementById('title').value=''; document.getElementById('content').value=''; document.getElementById('preview-content').innerHTML=''; displayPosts(); initializeKaTeX(); } });
+
+        document.getElementById('content').addEventListener('input', function(){ document.getElementById('preview-content').innerHTML=this.value; renderMathInEl(document.getElementById('preview-content')); });
+
+        async function initApp(){ posts = loadPosts(); editMode = true; document.getElementById('edit-mode-button').textContent='Disable Edit Mode'; document.getElementById('save-changes-button').style.display='inline'; document.getElementById('cancel-changes-button').style.display='inline'; displayPosts(); }
+
+        // GitHub publisher (same as before)
+        class GitHubPublisher{ constructor(){ this.token = localStorage.getItem('github_token'); this.owner='kimolas'; this.repo='kimolas.github.io'; this.branch='main'; }
+            async publishPosts(){ if(!this.token){ const token = prompt('Please enter your GitHub token (needs repo scope):'); if(!token) return; this.token = token; localStorage.setItem('github_token', token); }
+                try{ const currentFile = await this.getFile('posts.js'); const postsForFile = posts.map(post=>({ title:post.title, content:post.content, createdDate:new Date(post.createdAt).toISOString().split('T')[0], lastEdited: post.editedAt?new Date(post.editedAt).toISOString().split('T')[0]:null })); const newContent = `// To add a new post, copy the format below and add it to the top of the list.\n// The date is optional but recommended.\nconst defaultPosts = ${JSON.stringify(postsForFile, null, 4)};`; await this.updateFile('posts.js', newContent, currentFile.sha); alert('Successfully published to GitHub!'); }catch(err){ console.error(err); alert('Failed to publish to GitHub. See console.'); if(err.status===401) localStorage.removeItem('github_token'); } }
+            async getFile(path){ const r = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`, { headers:{ 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json' } }); if(!r.ok) throw new Error(`Failed to get file: ${r.statusText}`); return r.json(); }
+            async updateFile(path, content, sha){ const r = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`, { method:'PUT', headers:{ 'Authorization': `token ${this.token}`, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' }, body: JSON.stringify({ message:'Update blog posts', content: btoa(unescape(encodeURIComponent(content))), sha: sha, branch: this.branch }) }); if(!r.ok) throw new Error(`Failed to update file: ${r.statusText}`); return r.json(); }
+        }
+
+        const publisher = new GitHubPublisher();
+        const publishButton = document.createElement('button'); publishButton.textContent='Publish to GitHub'; publishButton.onclick = ()=>publisher.publishPosts(); publishButton.style.marginLeft='8px'; document.querySelector('.admin-controls').appendChild(publishButton);
+        const downloadButton = document.createElement('button'); downloadButton.textContent='Download posts.js'; downloadButton.onclick = ()=>{ const postsForFile = posts.map(post=>({ title:post.title, content:post.content, createdDate:new Date(post.createdAt).toISOString().split('T')[0], lastEdited: post.editedAt?new Date(post.editedAt).toISOString().split('T')[0]:null })); const fileContent = `// To add a new post, copy the format below and add it to the top of the list.\n// The date is optional but recommended.\nconst defaultPosts = ${JSON.stringify(postsForFile, null, 4)};`; const blob = new Blob([fileContent], { type:'text/javascript' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='posts.js'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href); };
+        downloadButton.style.marginLeft='8px'; document.querySelector('.admin-controls').appendChild(downloadButton);
+
+    // Initialize admin app immediately (hidden-by-obscurity admin page)
+    document.addEventListener('DOMContentLoaded', function(){ initApp(); });
+    </script>
+</body>
+</html>
