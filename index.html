@@ -79,6 +79,10 @@
                     <input type="text" id="title" required>
                     <label for="content">Content</label>
                     <textarea id="content" rows="5" required></textarea>
+                    <div id="preview" class="post-content" style="margin-top: 1rem; padding: 1rem; border: 1px solid #eee; border-radius: 4px; background: #fafafa;">
+                        <h4>Preview</h4>
+                        <div id="preview-content"></div>
+                    </div>
                     <button type="submit">Add Post</button>
                 </form>
             </div>
@@ -131,7 +135,32 @@
         // Blog management with draft support
         const blogList = document.getElementById('blog-list');
         const blogForm = document.getElementById('blog-form');
+        const contentInput = document.getElementById('content');
+        const previewContent = document.getElementById('preview-content');
         let draftPosts = JSON.parse(localStorage.getItem('draftPosts') || '[]');
+
+        // Live preview functionality
+        function updatePreview() {
+            const content = contentInput.value;
+            previewContent.innerHTML = content.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '').join('');
+            renderMath(previewContent);
+        }
+        
+        // Debounce function to limit preview updates
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Update preview when content changes, debounced to improve performance
+        contentInput.addEventListener('input', debounce(updatePreview, 300));
         
         function formatDate(date) {
             return date.toISOString().split('T')[0];
