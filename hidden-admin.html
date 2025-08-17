@@ -227,12 +227,17 @@
                     const currentFile = await this.getFile('posts.js');
                     const postsForFile = posts.map(post => ({ title: post.title, content: post.content, createdDate: new Date(post.createdAt).toISOString().split('T')[0], lastEdited: post.editedAt ? new Date(post.editedAt).toISOString().split('T')[0] : null }));
                     const newContent = `// To add a new post, copy the format below and add it to the top of the list.\n// The date is optional but recommended.\nconst defaultPosts = ${JSON.stringify(postsForFile, null, 4)};`;
-                    await this.updateFile('posts.js', newContent, currentFile.sha);
+                    // descriptive commit message: count, first few titles, date
+                    const maxTitles = 5;
+                    const titleList = postsForFile.map(p => p.title || '(untitled)').slice(0, maxTitles);
+                    const more = postsForFile.length > maxTitles ? '...' : '';
+                    const message = `Update posts.js (${postsForFile.length} posts): ${titleList.join(', ')}${more} - ${new Date().toISOString().split('T')[0]}`;
+                    await this.updateFile('posts.js', newContent, currentFile.sha, message);
                     alert('Successfully published to GitHub!');
                 }catch(err){ console.error('Error publishing to GitHub:', err); alert('Failed to publish to GitHub (see console).'); if(err.status === 401) localStorage.removeItem('github_token'); }
             }
             async getFile(path){ const r = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`, { headers: { 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json' } }); if(!r.ok) throw r; return r.json(); }
-            async updateFile(path, content, sha){ const r = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`, { method:'PUT', headers:{ 'Authorization': `token ${this.token}`, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' }, body: JSON.stringify({ message: 'Update blog posts', content: btoa(unescape(encodeURIComponent(content))), sha: sha, branch: this.branch }) }); if(!r.ok) throw r; return r.json(); }
+            async updateFile(path, content, sha, message = 'Update blog posts'){ const r = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`, { method:'PUT', headers:{ 'Authorization': `token ${this.token}`, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' }, body: JSON.stringify({ message: message, content: btoa(unescape(encodeURIComponent(content))), sha: sha, branch: this.branch }) }); if(!r.ok) throw r; return r.json(); }
         }
 
         // add publish and download buttons into publish-controls
