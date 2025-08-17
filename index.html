@@ -56,7 +56,7 @@
             <h2>Study Goals</h2>
             <ul>
                 <li><strong>Algebra:</strong> Commutative algebra</li>
-                <li><strong>Analysis:</strong> Functional Analysis</li>
+                <li><strong>Analysis:</strong> Functional analysis</li>
                 <li><strong>Geometry:</strong> Differential geometry, algebraic topology, algebraic geometry</li>
                 <li><strong>Physics:</strong> Quantum mechanics, quantum field theory, relativity, string theory</li>
                 <!-- Add more fields as you progress -->
@@ -148,15 +148,25 @@
         // Render LaTeX in a given element
         function renderMath(element) {
             renderMathInElement(element, {
-                delimiters:
-                [
+                delimiters: [
                     {left: "\\[", right: "\\]", display: true},
                     {left: "\\(", right: "\\)", display: false},
                     {left: "$$", right: "$$", display: true},
                     {left: "$", right: "$", display: false}
                 ],
                 throwOnError: false,
-                output: 'html'
+                output: 'html',
+                macros: {
+                    "\\Ima": "\\operatorname{Im}",
+                    "\\Ker": "\\operatorname{Ker}",
+                    "\\Hom": "\\operatorname{Hom}",
+                    "\\Aut": "\\operatorname{Aut}",
+                    "\\End": "\\operatorname{End}",
+                    "\\Tr": "\\operatorname{Tr}",
+                    "\\id": "\\operatorname{id}",
+                    "\\span": "\\operatorname{span}",
+                    "\\dim": "\\operatorname{dim}"
+                }
             });
         }
 
