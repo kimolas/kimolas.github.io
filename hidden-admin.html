@@ -80,6 +80,18 @@
 
         function loadPosts(){
             const loaded = [];
+
+            // Helper: return YYYY-MM-DD key for a date-like string
+            function dateKey(dateStr){
+                if (!dateStr) return '';
+                // plain date at start
+                const m = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
+                if (m) return m[1];
+                const dt = new Date(dateStr);
+                if (isNaN(dt)) return dateStr;
+                return dt.toISOString().split('T')[0];
+            }
+
             if (typeof defaultPosts !== 'undefined' && Array.isArray(defaultPosts)){
                 defaultPosts.forEach(p => {
                     // If the source date is in YYYY-MM-DD form, treat it as a local date (avoid Date parsing as UTC)
@@ -102,12 +114,26 @@
                     loaded.push({ title: p.title, content: p.content, createdAt: createdAt, editedAt: editedAt });
                 });
             }
+
             try{
                 const local = JSON.parse(localStorage.getItem('blog-posts') || '[]');
                 if (Array.isArray(local)){
                     local.forEach(lp => {
-                        const exists = loaded.some(fp => fp.title === lp.title && new Date(fp.createdAt).getTime() === new Date(lp.createdAt).getTime());
-                        if (!exists) loaded.push(lp);
+                        // normalize local entry into a consistent shape (treat YYYY-MM-DD as local)
+                        const norm = Object.assign({}, lp);
+                        if (norm.createdAt && /^\d{4}-\d{2}-\d{2}$/.test(norm.createdAt)){
+                            const [y,m,day] = norm.createdAt.split('-').map(Number);
+                            norm.createdAt = new Date(y, m-1, day).toISOString();
+                        } else if (!norm.createdAt){
+                            norm.createdAt = new Date().toISOString();
+                        }
+                        if (norm.editedAt && /^\d{4}-\d{2}-\d{2}$/.test(norm.editedAt)){
+                            const [y,m,day] = norm.editedAt.split('-').map(Number);
+                            norm.editedAt = new Date(y, m-1, day).toISOString();
+                        }
+
+                        const exists = loaded.some(fp => fp.title === (norm.title||'') && dateKey(fp.createdAt) === dateKey(norm.createdAt));
+                        if (!exists) loaded.push(norm);
                     });
                 }
             }catch(e){ console.error('Failed to parse local posts', e); }
