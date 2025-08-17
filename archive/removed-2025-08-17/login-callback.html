@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Authenticating...</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f8f8f8;
+        }
+        .message {
+            padding: 2rem;
+            text-align: center;
+            color: #2d3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="message">Authenticating...</div>
+    <script>
+        const clientId = 'YOUR_CLIENT_ID'; // Same as in login.html
+        const clientSecret = 'YOUR_CLIENT_SECRET'; // You'll need to replace this
+        const owner = 'kimolas';
+
+        async function handleCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            
+            // Verify state
+            if (state !== localStorage.getItem('github_auth_state')) {
+                window.location.href = 'login.html?error=state_mismatch';
+                return;
+            }
+            
+            try {
+                // Exchange code for access token using your backend proxy
+                // Note: In a real implementation, this would be done through your own server
+                // to keep the client secret secure. For GitHub Pages, you'd need to set up
+                // a small server (e.g., on Vercel, Netlify, etc.) to handle this exchange.
+                const tokenResponse = await fetch('YOUR_TOKEN_EXCHANGE_ENDPOINT', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        client_secret: clientSecret,
+                        code: code,
+                    }),
+                });
+
+                const data = await tokenResponse.json();
+                if (data.access_token) {
+                    // Verify the authenticated user is the repo owner
+                    const userResponse = await fetch('https://api.github.com/user', {
+                        headers: {
+                            'Authorization': `token ${data.access_token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    const user = await userResponse.json();
+                    if (user.login === owner) {
+                        localStorage.setItem('github_token', data.access_token);
+                        window.location.href = 'hidden-admin.html';
+                        return;
+                    }
+                }
+                
+                // If we get here, something went wrong
+                window.location.href = 'login.html?error=unauthorized';
+            } catch (error) {
+                console.error('Authentication failed:', error);
+                window.location.href = 'login.html?error=auth_failed';
+            }
+        }
+
+        handleCallback();
+    </script>
+</body>
+</html>

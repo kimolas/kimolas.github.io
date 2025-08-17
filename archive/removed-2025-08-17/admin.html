@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blog Admin - Mathematics & Physics Self-Study</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- KaTeX dependencies -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            margin: 0; 
+            background: #f8f8f8; 
+            color: #222;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main { 
+            flex: 1;
+            max-width: 1400px; 
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        .content-box {
+            background: #fff; 
+            padding: 2rem; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 8px #ccc;
+            margin-bottom: 2rem;
+            min-width: 0;
+        }
+        h1, h2, h3 { margin-top: 0; }
+        .blog-list { 
+            list-style: none; 
+            padding: 0;
+            margin: 0;
+        }
+        .blog-post { 
+            border-top: 1px solid #eee; 
+            padding-top: 1.5rem; 
+            margin-top: 1.5rem; 
+        }
+        .post-content p { margin: 0.5em 0; }
+        .post-content p:empty { display: none; }
+        .math-display { margin: 1em 0; text-align: center; }
+        .katex-display { 
+            overflow-x: auto; 
+            overflow-y: hidden; 
+            padding: 1em 0; 
+        }
+        .katex { text-rendering: auto; }
+        label { display: block; margin-top: 1rem; }
+        input, textarea { 
+            width: 100%; 
+            padding: 0.5rem; 
+            margin-top: 0.5rem; 
+            box-sizing: border-box;
+        }
+        button { 
+            margin-top: 1rem; 
+            padding: 0.5rem 1rem; 
+            background: #2d3e50; 
+            color: #fff; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #1a2533; }
+        .admin-controls {
+            margin-bottom: 1rem;
+        }
+        .edit-controls button {
+            margin-right: 0.5rem;
+        }
+        .preview {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #2d3e50;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <a href="index.html" class="back-link" style="display:none">← Back to Blog</a>
+        <section class="content-box">
+            <h2>Blog Admin</h2>
+            <div class="admin-controls">
+                <button onclick="toggleEditMode()" id="edit-mode-button">Enable Edit Mode</button>
+                <button onclick="saveChanges()" id="save-changes-button" style="display: none;">Save Changes</button>
+                <button onclick="cancelChanges()" id="cancel-changes-button" style="display: none;">Cancel</button>
+            </div>
+            <div class="blog-posts">
+                <ul class="blog-list" id="blog-list">
+                    <!-- Blog posts will appear here -->
+                </ul>
+            </div>
+        </section>
+        <section class="content-box">
+            <h3>New Blog Post</h3>
+            <form id="blog-form">
+                <label for="title">Title</label>
+                <input type="text" id="title" required>
+                <label for="content">Content</label>
+                <textarea id="content" rows="5" required></textarea>
+                <div class="preview">
+                    <h4>Preview</h4>
+                    <div id="preview-content"></div>
+                </div>
+                <button type="submit">Add Post</button>
+            </form>
+        </section>
+    </main>
+
+    <script>
+        // Global variables
+        let posts = [];
+        let editMode = false;
+        
+        // Function to display posts
+        function displayPosts() {
+            console.log('Displaying posts...');
+            const blogList = document.getElementById('blog-list');
+            if (!blogList) {
+                console.error('Blog list element not found!');
+                return;
+            }
+            
+            if (!Array.isArray(posts)) {
+                console.error('Posts is not an array:', posts);
+                return;
+            }
+            
+            blogList.innerHTML = '';
+            console.log('Number of posts to display:', posts.length);
+            
+            // Sort posts by creation date
+            posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            posts.forEach((post, index) => {
+                if (!post || !post.title || !post.content) {
+                    console.warn('Invalid post data at index', index, post);
+                    return;
+                }
+                
+                const li = document.createElement('li');
+                const article = document.createElement('article');
+                article.className = 'blog-post';
+                article.dataset.index = index;
+                
+                const header = document.createElement('h3');
+                header.textContent = post.title;
+                article.appendChild(header);
+                
+                const dates = document.createElement('div');
+                dates.innerHTML = `
+                    <small>Created: ${new Date(post.createdAt).toLocaleDateString()}</small>
+                    ${post.editedAt ? `<br><small>Last edited: ${new Date(post.editedAt).toLocaleDateString()}</small>` : ''}
+                `;
+                article.appendChild(dates);
+                
+                const content = document.createElement('div');
+                content.className = 'post-content';
+                content.innerHTML = post.content;
+                article.appendChild(content);
+                
+                if (editMode) {
+                    const controls = document.createElement('div');
+                    controls.className = 'edit-controls';
+                    
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.onclick = () => editPost(index);
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.onclick = () => deletePost(index);
+                    
+                    controls.appendChild(editButton);
+                    controls.appendChild(deleteButton);
+                    article.appendChild(controls);
+                }
+                
+                li.appendChild(article);
+                blogList.appendChild(li);
+            });
+            
+            // Initialize KaTeX for the new content
+            initializeKaTeX();
+        }
