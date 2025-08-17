@@ -2,6 +2,11 @@
 // The date is optional but recommended.
 const posts = [
     {
+        title: "test1323t",
+        date: "2025-08-17",
+        content: `3qr3f3`
+    },
+    {
         title: "test1",
         date: "2025-08-17",
         content: `tfewafewaf`
