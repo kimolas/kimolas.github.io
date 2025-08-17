@@ -147,53 +147,60 @@
         &copy; 2025 Nick K. All rights reserved.
     </footer>
     <script>
+        // Remove any text nodes that might have been accidentally added
+        document.body.childNodes.forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                node.remove();
+            }
+        });
+
         // Global variables
         let posts = [];
         let editMode = false;
 
         // Function to initialize KaTeX
         function initializeKaTeX() {
+            const options = {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false}
+                ],
+                throwOnError: false,
+                output: 'html',
+                strict: false,
+                macros: {
+                    "\\Ker": "\\operatorname{Ker}",
+                    "\\Ima": "\\operatorname{Im}",
+                    "\\Hom": "\\operatorname{Hom}",
+                    "\\End": "\\operatorname{End}",
+                    "\\Aut": "\\operatorname{Aut}",
+                    "\\Mor": "\\operatorname{Mor}",
+                    "\\Ob": "\\operatorname{Ob}",
+                    "\\id": "\\operatorname{id}",
+                    "\\Spec": "\\operatorname{Spec}",
+                    "\\Proj": "\\operatorname{Proj}",
+                    "\\Sing": "\\operatorname{Sing}",
+                    "\\Smooth": "\\operatorname{Smooth}",
+                    "\\Normal": "\\operatorname{Normal}",
+                    "\\Ann": "\\operatorname{Ann}",
+                    "\\tr": "\\operatorname{tr}",
+                    "\\rk": "\\operatorname{rk}",
+                    "\\GL": "\\operatorname{GL}",
+                    "\\SL": "\\operatorname{SL}",
+                    "\\SO": "\\operatorname{SO}",
+                    "\\Sp": "\\operatorname{Sp}",
+                    "\\PSL": "\\operatorname{PSL}",
+                    "\\GF": "\\operatorname{GF}",
+                    "\\R": "\\mathbb{R}",
+                    "\\C": "\\mathbb{C}",
+                    "\\Z": "\\mathbb{Z}",
+                    "\\Q": "\\mathbb{Q}",
+                    "\\N": "\\mathbb{N}",
+                    "\\F": "\\mathbb{F}"
+                }
+            };
+            
             if (typeof renderMathInElement === 'function') {
-                const options = {
-                    delimiters: [
-                        {left: "$$", right: "$$", display: true},
-                        {left: "$", right: "$", display: false}
-                    ],
-                    throwOnError: false,
-                    output: 'html',
-                    strict: false,
-                    macros: {
-                        "\\Ker": "\\operatorname{Ker}",
-                        "\\Ima": "\\operatorname{Im}",
-                        "\\Hom": "\\operatorname{Hom}",
-                        "\\End": "\\operatorname{End}",
-                        "\\Aut": "\\operatorname{Aut}",
-                        "\\Mor": "\\operatorname{Mor}",
-                        "\\Ob": "\\operatorname{Ob}",
-                        "\\id": "\\operatorname{id}",
-                        "\\Spec": "\\operatorname{Spec}",
-                        "\\Proj": "\\operatorname{Proj}",
-                        "\\Sing": "\\operatorname{Sing}",
-                        "\\Smooth": "\\operatorname{Smooth}",
-                        "\\Normal": "\\operatorname{Normal}",
-                        "\\Ann": "\\operatorname{Ann}",
-                        "\\tr": "\\operatorname{tr}",
-                        "\\rk": "\\operatorname{rk}",
-                        "\\GL": "\\operatorname{GL}",
-                        "\\SL": "\\operatorname{SL}",
-                        "\\SO": "\\operatorname{SO}",
-                        "\\Sp": "\\operatorname{Sp}",
-                        "\\PSL": "\\operatorname{PSL}",
-                        "\\GF": "\\operatorname{GF}",
-                        "\\R": "\\mathbb{R}",
-                        "\\C": "\\mathbb{C}",
-                        "\\Z": "\\mathbb{Z}",
-                        "\\Q": "\\mathbb{Q}",
-                        "\\N": "\\mathbb{N}",
-                        "\\F": "\\mathbb{F}"
-                    }
-                };
-                
                 try {
                     renderMathInElement(document.body, options);
                 } catch (error) {
@@ -345,186 +352,6 @@
         }
     </script>
     <script src="posts.js" onload="startApp()"></script>
-        let editMode = false;
-
-        function displayPosts() {
-            console.log('Displaying posts...');
-            const blogList = document.getElementById('blog-list');
-            if (!blogList) {
-                console.error('Blog list element not found!');
-                return;
-            }
-            
-            if (!Array.isArray(posts)) {
-                console.error('Posts is not an array:', posts);
-                return;
-            }
-            
-            blogList.innerHTML = '';
-            console.log('Number of posts to display:', posts.length);
-            
-            // Sort posts by creation date
-            posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            
-            posts.forEach((post, index) => {
-                if (!post || !post.title || !post.content) {
-                    console.warn('Invalid post data at index', index, post);
-                    return;
-                }
-                
-                const li = document.createElement('li');
-                const article = document.createElement('article');
-                article.className = 'blog-post';
-                article.dataset.index = index;
-                
-                const header = document.createElement('h3');
-                header.textContent = post.title;
-                article.appendChild(header);
-                
-                const dates = document.createElement('div');
-                dates.innerHTML = `
-                    <small>Created: ${new Date(post.createdAt).toLocaleDateString()}</small>
-                    ${post.editedAt ? `<br><small>Last edited: ${new Date(post.editedAt).toLocaleDateString()}</small>` : ''}
-                `;
-                article.appendChild(dates);
-                
-                const content = document.createElement('div');
-                content.className = 'post-content';
-                content.innerHTML = post.content;
-                article.appendChild(content);
-                
-                if (editMode) {
-                    const controls = document.createElement('div');
-                    controls.className = 'edit-controls';
-                    
-                    const editButton = document.createElement('button');
-                    editButton.textContent = 'Edit';
-                    editButton.onclick = () => window.editPost(index);
-                    
-                    const deleteButton = document.createElement('button');
-                    deleteButton.textContent = 'Delete';
-                    deleteButton.onclick = () => window.deletePost(index);
-                    
-                    controls.appendChild(editButton);
-                    controls.appendChild(deleteButton);
-                    article.appendChild(controls);
-                }
-                
-                li.appendChild(article);
-                blogList.appendChild(li);
-            });
-            
-            // Render math in posts
-            renderMathContent(blogList);
-        }
-
-        document.getElementById('blog-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const title = document.getElementById('title').value;
-            const content = document.getElementById('content').value;
-            
-            if (title && content) {
-                posts.push({
-                    title,
-                    content,
-                    createdAt: new Date().toISOString(),
-                    editedAt: null
-                });
-                
-                localStorage.setItem('blog-posts', JSON.stringify(posts));
-                
-                document.getElementById('title').value = '';
-                document.getElementById('content').value = '';
-                document.getElementById('preview-content').innerHTML = '';
-                
-                displayPosts();
-            }
-        });
-
-        function renderMathContent(element) {
-            if (typeof renderMathInElement === 'function') {
-                renderMathInElement(element, {
-                    delimiters: [
-                        {left: "$$", right: "$$", display: true},
-                        {left: "$", right: "$", display: false}
-                    ],
-                    throwOnError: false
-                });
-            }
-        }
-
-        document.getElementById('content').addEventListener('input', function(e) {
-            const preview = document.getElementById('preview-content');
-            preview.innerHTML = this.value;
-            renderMathContent(preview);
-        });
-
-        function toggleEditMode() {
-            editMode = !editMode;
-            const editModeButton = document.getElementById('edit-mode-button');
-            const saveChangesButton = document.getElementById('save-changes-button');
-            const cancelChangesButton = document.getElementById('cancel-changes-button');
-            
-            editModeButton.textContent = editMode ? 'Disable Edit Mode' : 'Enable Edit Mode';
-            saveChangesButton.style.display = editMode ? 'inline' : 'none';
-            cancelChangesButton.style.display = editMode ? 'inline' : 'none';
-            
-            displayPosts();
-        }
-
-        function editPost(index) {
-            const post = posts[index];
-            document.getElementById('title').value = post.title;
-            document.getElementById('content').value = post.content;
-            document.getElementById('preview-content').innerHTML = post.content;
-            
-            // Remove the old post
-            posts.splice(index, 1);
-            
-            // Update edited time when saving
-            post.editedAt = new Date().toISOString();
-            
-            // Save changes
-            localStorage.setItem('blog-posts', JSON.stringify(posts));
-            displayPosts();
-            
-            // Render math in preview
-            renderMathContent(document.getElementById('preview-content'));
-        }
-
-        function deletePost(index) {
-            if (confirm('Are you sure you want to delete this post?')) {
-                posts.splice(index, 1);
-                localStorage.setItem('blog-posts', JSON.stringify(posts));
-                displayPosts();
-            }
-        }
-
-        function saveChanges() {
-            localStorage.setItem('blog-posts', JSON.stringify(posts));
-            toggleEditMode();
-        }
-
-        function cancelChanges() {
-            posts = JSON.parse(localStorage.getItem('blog-posts') || '[]');
-            toggleEditMode();
-        }
-
-        // Initial display
-        displayPosts();
-
-        // Initialize KaTeX auto-render after the page loads and script loads
-        function initializeKaTeX() {
-            if (typeof renderMathInElement === 'function') {
-                displayPosts(); // Re-render posts once KaTeX is ready
-            } else {
-                // If KaTeX isn't loaded yet, wait a bit and try again
-                setTimeout(initializeKaTeX, 100);
-            }
-        }
-
-        // Start initialization when the DOM is ready
-        document.addEventListener('DOMContentLoaded', initializeKaTeX);
     </script>
 </body>
 </html>
