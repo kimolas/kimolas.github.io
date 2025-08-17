@@ -212,36 +212,7 @@
                 throwOnError: false,
                 output: 'html',
                 strict: false,
-                macros: {
-                    "\\Ker": "\\operatorname{Ker}",
-                    "\\Ima": "\\operatorname{Im}",
-                    "\\Hom": "\\operatorname{Hom}",
-                    "\\End": "\\operatorname{End}",
-                    "\\Aut": "\\operatorname{Aut}",
-                    "\\Mor": "\\operatorname{Mor}",
-                    "\\Ob": "\\operatorname{Ob}",
-                    "\\id": "\\operatorname{id}",
-                    "\\Spec": "\\operatorname{Spec}",
-                    "\\Proj": "\\operatorname{Proj}",
-                    "\\Sing": "\\operatorname{Sing}",
-                    "\\Smooth": "\\operatorname{Smooth}",
-                    "\\Normal": "\\operatorname{Normal}",
-                    "\\Ann": "\\operatorname{Ann}",
-                    "\\tr": "\\operatorname{tr}",
-                    "\\rk": "\\operatorname{rk}",
-                    "\\GL": "\\operatorname{GL}",
-                    "\\SL": "\\operatorname{SL}",
-                    "\\SO": "\\operatorname{SO}",
-                    "\\Sp": "\\operatorname{Sp}",
-                    "\\PSL": "\\operatorname{PSL}",
-                    "\\GF": "\\operatorname{GF}",
-                    "\\R": "\\mathbb{R}",
-                    "\\C": "\\mathbb{C}",
-                    "\\Z": "\\mathbb{Z}",
-                    "\\Q": "\\mathbb{Q}",
-                    "\\N": "\\mathbb{N}",
-                    "\\F": "\\mathbb{F}"
-                }
+                macros: katexMacros
             };
             
             if (typeof renderMathInElement === 'function') {
@@ -397,6 +368,136 @@
             initialize();
         }
     </script>
+    <script src="katex-macros.js"></script>
     <script src="posts.js"></script>
+    <script>
+        // GitHub publishing functionality
+        class GitHubPublisher {
+            constructor() {
+                this.token = localStorage.getItem('github_token');
+                this.owner = 'kimolas';
+                this.repo = 'kimolas.github.io';
+                this.branch = 'main';
+            }
+
+            async publishPosts() {
+                if (!this.token) {
+                    const token = prompt('Please enter your GitHub token (needs repo scope):');
+                    if (!token) return;
+                    this.token = token;
+                    localStorage.setItem('github_token', token);
+                }
+
+                try {
+                    // First get the current file's SHA
+                    const currentFile = await this.getFile('posts.js');
+                    
+                    // Prepare the new content
+                    const postsForFile = posts.map(post => ({
+                        title: post.title,
+                        content: post.content,
+                        createdDate: new Date(post.createdAt).toISOString().split('T')[0],
+                        lastEdited: post.editedAt ? new Date(post.editedAt).toISOString().split('T')[0] : null
+                    }));
+                    
+                    const newContent = `// To add a new post, copy the format below and add it to the top of the list.
+// The date is optional but recommended.
+const defaultPosts = ${JSON.stringify(postsForFile, null, 4)};`;
+
+                    // Update the file in GitHub
+                    await this.updateFile('posts.js', newContent, currentFile.sha);
+                    
+                    alert('Successfully published to GitHub!');
+                } catch (error) {
+                    console.error('Error publishing to GitHub:', error);
+                    alert('Failed to publish to GitHub. Check console for details.');
+                    if (error.status === 401) {
+                        localStorage.removeItem('github_token');
+                    }
+                }
+            }
+
+            async getFile(path) {
+                const response = await fetch(
+                    `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`,
+                    {
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to get file: ${response.statusText}`);
+                }
+                
+                return response.json();
+            }
+
+            async updateFile(path, content, sha) {
+                const response = await fetch(
+                    `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${path}`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${this.token}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: 'Update blog posts',
+                            content: btoa(unescape(encodeURIComponent(content))),
+                            sha: sha,
+                            branch: this.branch
+                        })
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to update file: ${response.statusText}`);
+                }
+                
+                return response.json();
+            }
+        }
+
+        // Initialize GitHub publisher
+        const publisher = new GitHubPublisher();
+
+        // Add publish button
+        const publishButton = document.createElement('button');
+        publishButton.textContent = 'Publish to GitHub';
+        publishButton.onclick = () => publisher.publishPosts();
+        publishButton.style.marginLeft = '8px';
+        document.querySelector('.admin-controls').appendChild(publishButton);
+
+        // Optional: Keep the download button for backup purposes
+        const downloadButton = document.createElement('button');
+        downloadButton.textContent = 'Download posts.js';
+        downloadButton.onclick = function() {
+            const postsForFile = posts.map(post => ({
+                title: post.title,
+                content: post.content,
+                createdDate: new Date(post.createdAt).toISOString().split('T')[0],
+                lastEdited: post.editedAt ? new Date(post.editedAt).toISOString().split('T')[0] : null
+            }));
+            
+            const fileContent = `// To add a new post, copy the format below and add it to the top of the list.
+// The date is optional but recommended.
+const defaultPosts = ${JSON.stringify(postsForFile, null, 4)};`;
+            
+            const blob = new Blob([fileContent], { type: 'text/javascript' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'posts.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        };
+        downloadButton.style.marginLeft = '8px';
+        document.querySelector('.admin-controls').appendChild(downloadButton);
+    </script>
 </body>
 </html>

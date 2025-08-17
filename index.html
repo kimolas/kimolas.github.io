@@ -202,36 +202,7 @@
                 throwOnError: false,
                 output: 'html',
                 strict: false,
-                macros: {
-                    "\\Ker": "\\operatorname{Ker}",
-                    "\\Ima": "\\operatorname{Im}",
-                    "\\Hom": "\\operatorname{Hom}",
-                    "\\End": "\\operatorname{End}",
-                    "\\Aut": "\\operatorname{Aut}",
-                    "\\Mor": "\\operatorname{Mor}",
-                    "\\Ob": "\\operatorname{Ob}",
-                    "\\id": "\\operatorname{id}",
-                    "\\Spec": "\\operatorname{Spec}",
-                    "\\Proj": "\\operatorname{Proj}",
-                    "\\Sing": "\\operatorname{Sing}",
-                    "\\Smooth": "\\operatorname{Smooth}",
-                    "\\Normal": "\\operatorname{Normal}",
-                    "\\Ann": "\\operatorname{Ann}",
-                    "\\tr": "\\operatorname{tr}",
-                    "\\rk": "\\operatorname{rk}",
-                    "\\GL": "\\operatorname{GL}",
-                    "\\SL": "\\operatorname{SL}",
-                    "\\SO": "\\operatorname{SO}",
-                    "\\Sp": "\\operatorname{Sp}",
-                    "\\PSL": "\\operatorname{PSL}",
-                    "\\GF": "\\operatorname{GF}",
-                    "\\R": "\\mathbb{R}",
-                    "\\C": "\\mathbb{C}",
-                    "\\Z": "\\mathbb{Z}",
-                    "\\Q": "\\mathbb{Q}",
-                    "\\N": "\\mathbb{N}",
-                    "\\F": "\\mathbb{F}"
-                }
+                macros: katexMacros
             };
             
             if (typeof renderMathInElement === 'function') {
@@ -303,6 +274,7 @@
             }
         }
     </script>
+    <script src="katex-macros.js"></script>
     <script src="posts.js" onload="startApp()"></script>
 </body>
 </html>
