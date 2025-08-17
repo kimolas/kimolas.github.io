@@ -5,9 +5,37 @@
     <title>Mathematics & Physics Self-Study</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- KaTeX dependencies -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist        // Initialize KaTeX rendering
+        function initializeKaTeX() {
+            if (typeof renderMathInElement === 'function') {
+                const options = {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ],
+                    throwOnError: false,
+                    output: 'html'
+                };
+                
+                // Render any existing math content
+                renderMathInElement(document.body, options);
+                
+                // Re-render posts to ensure math is displayed
+                displayPosts();
+            } else {
+                console.warn('KaTeX not loaded yet, retrying...');
+                setTimeout(initializeKaTeX, 100);
+            }
+        }
+
+        // Ensure KaTeX is initialized after script loads
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            initializeKaTeX();
+        } else {
+            document.addEventListener('DOMContentLoaded', initializeKaTeX);
+        }ss">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="initializeKaTeX()"></script>
     <style>
         body { 
             font-family: 'Segoe UI', Arial, sans-serif; 
@@ -24,7 +52,7 @@
             margin: 2rem auto;
             padding: 0 2rem;
             display: grid;
-            grid-template-columns: 500px 1fr;
+            grid-template-columns: 300px minmax(600px, 1fr);
             gap: 3rem;
         }
         .content-box {
@@ -33,6 +61,7 @@
             border-radius: 8px; 
             box-shadow: 0 2px 8px #ccc;
             margin-bottom: 2rem;
+            min-width: 0; /* Prevents grid blowout */
         }
         h1, h2 { margin-top: 0; }
         .blog-container {
@@ -148,48 +177,75 @@
     <script src="posts.js"></script>
     <script>
         // Blog post handling
-        let blogPosts = [];
-        
-        // Initialize from posts.js
-        function initializePosts() {
+        function loadPosts() {
+            console.log('Starting post loading process...');
+            
+            // First try to load posts from posts.js
+            let loadedPosts = [];
             if (typeof posts !== 'undefined' && Array.isArray(posts)) {
-                console.log('Loading posts from posts.js:', posts.length, 'posts found');
-                return posts.map(post => ({
+                console.log('Found posts.js data:', posts.length, 'posts');
+                loadedPosts = posts.map(post => ({
                     title: post.title,
                     content: post.content,
                     createdAt: post.createdDate ? new Date(post.createdDate).toISOString() : new Date().toISOString(),
                     editedAt: post.lastEdited ? new Date(post.lastEdited).toISOString() : null
                 }));
+            } else {
+                console.warn('posts.js data not found or invalid');
             }
-            return [];
+
+            // Then try to load from localStorage
+            try {
+                const localPosts = JSON.parse(localStorage.getItem('blog-posts') || '[]');
+                console.log('Found localStorage data:', localPosts.length, 'posts');
+                
+                // Add local posts that don't exist in posts.js
+                localPosts.forEach(localPost => {
+                    const exists = loadedPosts.some(filePost => 
+                        filePost.title === localPost.title && 
+                        new Date(filePost.createdAt).getTime() === new Date(localPost.createdAt).getTime()
+                    );
+                    if (!exists) {
+                        loadedPosts.push(localPost);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+            }
+
+            console.log('Total posts loaded:', loadedPosts.length);
+            return loadedPosts;
         }
-        
-        // Load posts from posts.js first
-        blogPosts = initializePosts();
-        
-        // Then merge with any additional posts from localStorage
-        const localPosts = JSON.parse(localStorage.getItem('blog-posts') || '[]');
-        
-        // Only add local posts that aren't already in posts.js (comparing by title and creation date)
-        const newLocalPosts = localPosts.filter(localPost => 
-            !blogPosts.some(blogPost => 
-                blogPost.title === localPost.title && 
-                blogPost.createdAt === localPost.createdAt
-            )
-        );
-        
-        blogPosts = [...blogPosts, ...newLocalPosts];
-        localStorage.setItem('blog-posts', JSON.stringify(blogPosts));
-        let posts = blogPosts;
+
+        // Load all posts
+        let posts = loadPosts();
         let editMode = false;
 
         function displayPosts() {
+            console.log('Displaying posts...');
             const blogList = document.getElementById('blog-list');
-            blogList.innerHTML = '';
+            if (!blogList) {
+                console.error('Blog list element not found!');
+                return;
+            }
             
+            if (!Array.isArray(posts)) {
+                console.error('Posts is not an array:', posts);
+                return;
+            }
+            
+            blogList.innerHTML = '';
+            console.log('Number of posts to display:', posts.length);
+            
+            // Sort posts by creation date
             posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             
             posts.forEach((post, index) => {
+                if (!post || !post.title || !post.content) {
+                    console.warn('Invalid post data at index', index, post);
+                    return;
+                }
+                
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <article class="blog-post" data-index="${index}">
