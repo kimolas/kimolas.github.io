@@ -3,7 +3,8 @@
 const posts = [
     {
         title: "Local rings",
-        date: "2025-08-17",
+        createdDate: "2025-08-16",
+        lastEdited: "2025-08-17",
         content: `I read through Hungerford's chapter on rings. After the exercises, I have some handle on local rings, but I don't yet understand the connection to geometry---and a ring having a unique maximal ideal still feels like an arbitrary distinction. 
 
 Exercise 3.4.16 was entertaining. I enjoy finding ways to apply the first isomorphism theorem (that is, if $\\varphi: R \\to \\Ima {\\varphi}$ is a ring homomorphism, then $R/\\Ker{\\varphi} \\cong \\Ima{\\varphi}$).
@@ -14,7 +15,8 @@ Proof: By first iso theorem, WTS $R/\\Ker{\\varphi}$ is local. Know $1_R \\notin
     },
     {
         title: "QM (Hall)",
-        date: "2025-08-16",
-        content: `Read through section 7.1 of Hall's "QM for Mathematicians." I now understand better the relationship between the spectrum $\\sigma(A)$ and the eigenvalues (if any) of a bounded operator $A$.`
+        createdDate: "2025-08-16",
+        lastEdited: "2025-08-16",
+        content: `I read through section 7.1 of Hall's "QM for Mathematicians." I now understand better the relationship between the spectrum $\\sigma(A)$ and the eigenvalues (if any) of a bounded operator $A$.`
     }
 ];

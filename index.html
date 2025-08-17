@@ -169,7 +169,8 @@
         function generatePostCode(post) {
             return `    {
         title: "${post.title.replace(/"/g, '\\"')}",
-        date: "${post.date || formatDate(new Date())}",
+        createdDate: "${post.createdDate || post.date || formatDate(new Date())}",
+        lastEdited: "${post.lastEdited || post.date || formatDate(new Date())}",
         content: \`${post.content.replace(/\\/g, '\\\\').replace(/`/g, '\\`')}\`
     }`;
         }
@@ -219,7 +220,8 @@
                 li.innerHTML = `
                     <div class="blog-post">
                         <h4>${post.title} (Draft)</h4>
-                        ${post.date ? `<p><em>${post.date}</em></p>` : ''}
+                        <p><em>Created: ${post.createdDate || post.date || formatDate(new Date())}</em>
+                        ${post.lastEdited && post.lastEdited !== post.createdDate ? `<br><em>Last edited: ${post.lastEdited}</em>` : ''}</p>
                         <div class="post-content">${formatContent(post.content)}</div>
                         <div>
                             <button onclick="editPost(${idx})">Edit</button>
@@ -238,7 +240,8 @@
                 li.innerHTML = `
                     <div class="blog-post">
                         <h4>${post.title}</h4>
-                        ${post.date ? `<p><em>${post.date}</em></p>` : ''}
+                        <p><em>Created: ${post.createdDate || post.date || formatDate(new Date())}</em>
+                        ${post.lastEdited && post.lastEdited !== post.createdDate ? `<br><em>Last edited: ${post.lastEdited}</em>` : ''}</p>
                         <div class="post-content">${formatContent(post.content)}</div>
                         ${isEditMode ? `
                         <div class="edit-controls">
@@ -264,7 +267,8 @@
                 draftPosts.unshift({ 
                     title, 
                     content,
-                    date: formatDate(new Date())
+                    createdDate: formatDate(new Date()),
+                    lastEdited: formatDate(new Date())
                 });
                 localStorage.setItem('draftPosts', JSON.stringify(draftPosts));
                 renderPosts();
@@ -433,7 +437,8 @@
                 const updatedPost = {
                     title: document.getElementById('title').value.trim(),
                     content: document.getElementById('content').value.trim(),
-                    date: post.date // Keep original date
+                    createdDate: post.createdDate || post.date || formatDate(new Date()),
+                    lastEdited: formatDate(new Date()) // Update edit date
                 };
                 
                 try {
