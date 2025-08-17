@@ -13,7 +13,10 @@
         .content-box{ background:#fff; padding:2rem; border-radius:8px; box-shadow:0 2px 8px #ccc; margin-bottom:2rem }
         .admin-controls{ margin-bottom:1rem }
         .blog-list{ list-style:none; padding:0; margin:0 }
-        .preview{ margin-top:1rem; padding:1rem; border:1px solid #eee; border-radius:4px; background:#fafafa }
+        /* Editor improvements */
+        input#title { width:100%; padding:0.6rem; font-size:1.05rem; box-sizing:border-box; margin-top:0.5rem }
+        textarea#content { width:100%; min-height:50vh; max-height:75vh; padding:0.75rem; font-size:1rem; line-height:1.5; box-sizing:border-box; resize:vertical; font-family: 'Segoe UI', 'Courier New', monospace; margin-top:0.5rem }
+        .preview{ margin-top:1rem; padding:1rem; border:1px solid #eee; border-radius:4px; background:#fafafa; max-height:50vh; overflow:auto }
         .password-modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); }
         .password-box{ background:#fff; padding:1.5rem; border-radius:8px; width:320px; box-shadow:0 4px 20px rgba(0,0,0,0.2) }
         .password-box input{ width:100%; padding:0.5rem; margin-top:0.5rem; box-sizing:border-box }
@@ -48,6 +51,9 @@
 
     <!-- No password modal: hidden admin page accessible directly -->
 
+    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
     <script src="katex-macros.js"></script>
     <script src="posts.js"></script>
     <script>
@@ -102,11 +108,75 @@
         function saveChanges(){ localStorage.setItem('blog-posts', JSON.stringify(posts)); toggleEditMode(); }
         function cancelChanges(){ posts = loadPosts(); toggleEditMode(); }
 
-        document.getElementById('blog-form').addEventListener('submit', function(e){ e.preventDefault(); const title=document.getElementById('title').value; const content=document.getElementById('content').value; if(title && content){ posts.push({ title, content, createdAt: new Date().toISOString(), editedAt: null }); localStorage.setItem('blog-posts', JSON.stringify(posts)); document.getElementById('title').value=''; document.getElementById('content').value=''; document.getElementById('preview-content').innerHTML=''; displayPosts(); initializeKaTeX(); } });
+    // We'll initialize EasyMDE on DOMContentLoaded so the editor instance is available globally as `easymde`.
+    let easymde = null;
 
-        document.getElementById('content').addEventListener('input', function(){ document.getElementById('preview-content').innerHTML=this.value; renderMathInEl(document.getElementById('preview-content')); });
+    document.addEventListener('DOMContentLoaded', function(){
 
-        async function initApp(){ posts = loadPosts(); editMode = true; document.getElementById('edit-mode-button').textContent='Disable Edit Mode'; document.getElementById('save-changes-button').style.display='inline'; document.getElementById('cancel-changes-button').style.display='inline'; displayPosts(); }
+        // Initialize EasyMDE rich markdown editor with preview that supports KaTeX rendering.
+        try {
+            easymde = new EasyMDE({
+                element: document.getElementById('content'),
+                spellChecker: false,
+                autosave: { enabled: false },
+                toolbar: ["bold","italic","heading","|","quote","unordered-list","ordered-list","|","link","image","|","preview","side-by-side","fullscreen"],
+                previewRender: function(plainText, preview){
+                    // Use marked to convert markdown to HTML, then render math in the preview element.
+                    const html = (typeof marked.parse === 'function') ? marked.parse(plainText) : marked(plainText);
+                    preview.innerHTML = html;
+                    renderMathInEl(preview);
+                    return preview.innerHTML;
+                }
+            });
+        } catch (e) { console.error('Failed to initialize EasyMDE:', e); }
++
++
++        // Wire up form submit to use EasyMDE content
+        const form = document.getElementById('blog-form');
++        form.addEventListener('submit', function(e){
++            e.preventDefault();
++            const title = document.getElementById('title').value.trim();
++            const content = easymde ? easymde.value() : document.getElementById('content').value;
++            if(title && content){
++                posts.push({ title, content, createdAt: new Date().toISOString(), editedAt: null });
++                localStorage.setItem('blog-posts', JSON.stringify(posts));
++                document.getElementById('title').value = '';
++                if(easymde) easymde.value(''); else document.getElementById('content').value = '';
++                document.getElementById('preview-content').innerHTML = '';
++                displayPosts();
++                initializeKaTeX();
++            }
++        });
++
++        // Update small inline preview below the form as the editor changes
+        const previewContainer = document.getElementById('preview-content');
++        if(easymde && easymde.codemirror){
++            easymde.codemirror.on('change', function(){
++                try{
++                    const md = easymde.value();
++                    const html = (typeof marked.parse === 'function') ? marked.parse(md) : marked(md);
++                    previewContainer.innerHTML = html;
++                    renderMathInEl(previewContainer);
++                }catch(err){ console.error('Preview update failed:', err); }
++            });
++        } else {
++            // Fallback for textarea input events if editor didn't initialize
++            const ta = document.getElementById('content');
++            if(ta){ ta.addEventListener('input', function(){ previewContainer.innerHTML = ta.value; renderMathInEl(previewContainer); }); }
++        }
++
++        // Final app initialization (load posts and enable edit mode)
++        posts = loadPosts();
++        editMode = true;
++        document.getElementById('edit-mode-button').textContent = 'Disable Edit Mode';
++        document.getElementById('save-changes-button').style.display = 'inline';
++        document.getElementById('cancel-changes-button').style.display = 'inline';
++        displayPosts();
++    });
++
++    async function initApp(){ /* kept for compatibility, now a no-op since initialization happens on DOMContentLoaded */ }
+*** End Patch
+*** End Patch
 
         // GitHub publisher (same as before)
         class GitHubPublisher{ constructor(){ this.token = localStorage.getItem('github_token'); this.owner='kimolas'; this.repo='kimolas.github.io'; this.branch='main'; }
