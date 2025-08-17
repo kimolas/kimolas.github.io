@@ -81,7 +81,26 @@
         function loadPosts(){
             const loaded = [];
             if (typeof defaultPosts !== 'undefined' && Array.isArray(defaultPosts)){
-                defaultPosts.forEach(p => loaded.push({ title: p.title, content: p.content, createdAt: p.createdDate ? new Date(p.createdDate).toISOString() : new Date().toISOString(), editedAt: p.lastEdited ? new Date(p.lastEdited).toISOString() : null }));
+                defaultPosts.forEach(p => {
+                    // If the source date is in YYYY-MM-DD form, treat it as a local date (avoid Date parsing as UTC)
+                    let createdAt;
+                    if (p.createdDate && /^\d{4}-\d{2}-\d{2}$/.test(p.createdDate)){
+                        const [y,m,day] = p.createdDate.split('-').map(Number);
+                        createdAt = new Date(y, m-1, day).toISOString();
+                    } else {
+                        createdAt = p.createdDate ? new Date(p.createdDate).toISOString() : new Date().toISOString();
+                    }
+                    let editedAt = null;
+                    if (p.lastEdited){
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(p.lastEdited)){
+                            const [y,m,day] = p.lastEdited.split('-').map(Number);
+                            editedAt = new Date(y, m-1, day).toISOString();
+                        } else {
+                            editedAt = new Date(p.lastEdited).toISOString();
+                        }
+                    }
+                    loaded.push({ title: p.title, content: p.content, createdAt: createdAt, editedAt: editedAt });
+                });
             }
             try{
                 const local = JSON.parse(localStorage.getItem('blog-posts') || '[]');
@@ -95,6 +114,19 @@
             return loaded;
         }
 
+        // Helper: format a date string for display. If date-only 'YYYY-MM-DD', or ISO midnight produced from local date, treat as local date to avoid timezone shifts.
+        function formatDateForDisplay(d){
+            if (!d) return '';
+            // if it's plain YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(d)){
+                const [y,m,day] = d.split('-').map(Number);
+                return new Date(y, m-1, day).toLocaleString();
+            }
+            const dt = new Date(d);
+            if (isNaN(dt)) return d;
+            return dt.toLocaleString();
+        }
+
         function displayPosts(){
             const blogList = document.getElementById('blog-list');
             if(!blogList) return;
@@ -106,7 +138,7 @@
                 const article = document.createElement('article'); article.className = 'blog-post';
                 const h3 = document.createElement('h3'); h3.textContent = post.title; article.appendChild(h3);
                 const dates = document.createElement('div');
-                dates.innerHTML = `<small>Created: ${new Date(post.createdAt).toLocaleString()}</small>${post.editedAt?`<br><small>Last edited: ${new Date(post.editedAt).toLocaleString()}</small>`:''}`;
+                dates.innerHTML = `<small>Created: ${formatDateForDisplay(post.createdAt)}</small>${post.editedAt?`<br><small>Last edited: ${formatDateForDisplay(post.editedAt)}</small>`:''}`;
                 article.appendChild(dates);
                 const content = document.createElement('div'); content.className = 'post-content';
                 // render markdown to HTML for preview in admin list
