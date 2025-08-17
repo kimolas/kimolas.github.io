@@ -46,7 +46,7 @@
                 <label for="content">Content</label>
                 <textarea id="content" rows="6" required></textarea>
                 <div class="preview"><h4>Preview</h4><div id="preview-content"></div></div>
-                <div style="margin-top:0.75rem"><button type="submit">Add Post</button></div>
+                    <div style="margin-top:0.75rem"><button type="submit" id="add-post-button">Add Post</button></div>
             </form>
         </section>
     </main>
@@ -164,12 +164,30 @@
             function wireEvents(){
                 const form = document.getElementById('blog-form');
                 const previewContainer = document.getElementById('preview-content');
-                form.addEventListener('submit', function(e){
-                    e.preventDefault();
-                    const title = document.getElementById('title').value.trim();
-                    const content = (window.easymdeInstance ? window.easymdeInstance.value() : document.getElementById('content').value);
-                    if (title && content){ posts.push({ title, content, createdAt: new Date().toISOString(), editedAt: null }); localStorage.setItem('blog-posts', JSON.stringify(posts)); document.getElementById('title').value=''; if (window.easymdeInstance) window.easymdeInstance.value(''); else document.getElementById('content').value=''; previewContainer.innerHTML=''; displayPosts(); renderMathInElSafe(previewContainer); }
-                });
+                const addBtn = document.getElementById('add-post-button');
+
+                function addPost(e){
+                    if(e && typeof e.preventDefault === 'function') e.preventDefault();
+                    try{
+                        const title = (document.getElementById('title') && document.getElementById('title').value) ? document.getElementById('title').value.trim() : '';
+                        const content = (window.easymdeInstance ? window.easymdeInstance.value() : (document.getElementById('content') ? document.getElementById('content').value : ''));
+                        console.log('addPost invoked', { title: !!title, contentLength: content ? content.length : 0 });
+                        if (title && content){
+                            posts.push({ title, content, createdAt: new Date().toISOString(), editedAt: null });
+                            localStorage.setItem('blog-posts', JSON.stringify(posts));
+                            if (document.getElementById('title')) document.getElementById('title').value = '';
+                            if (window.easymdeInstance) window.easymdeInstance.value(''); else if (document.getElementById('content')) document.getElementById('content').value = '';
+                            previewContainer.innerHTML = '';
+                            displayPosts();
+                            renderMathInElSafe(previewContainer);
+                        } else {
+                            console.warn('addPost: missing title or content');
+                        }
+                    }catch(err){ console.error('addPost error', err); }
+                }
+
+                if(form) form.addEventListener('submit', addPost);
+                if(addBtn) addBtn.addEventListener('click', addPost);
 
                 const updatePreview = () => {
                     try{
