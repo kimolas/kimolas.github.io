@@ -179,7 +179,8 @@
                 
                 const content = document.createElement('div');
                 content.className = 'post-content';
-                content.innerHTML = post.content;
+                // Render as Markdown if marked is available, otherwise use raw HTML
+                content.innerHTML = (typeof marked !== 'undefined' && typeof marked.parse === 'function') ? marked.parse(post.content) : post.content;
                 article.appendChild(content);
                 
                 li.appendChild(article);
@@ -272,6 +273,7 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="katex-macros.js"></script>
     <script src="posts.js" onload="startApp()"></script>
 </body>
