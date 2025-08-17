@@ -20,12 +20,12 @@
         }
         main { 
             flex: 1;
-            max-width: 1200px; 
+            max-width: 1400px; 
             margin: 2rem auto;
             padding: 0 2rem;
             display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 2rem;
+            grid-template-columns: 350px 1fr;
+            gap: 3rem;
         }
         .content-box {
             background: #fff; 
@@ -150,19 +150,35 @@
         // Blog post handling
         let blogPosts = [];
         
-        // Convert posts from posts.js to the expected format
-        if (typeof posts !== 'undefined') {
-            blogPosts = posts.map(post => ({
-                title: post.title,
-                content: post.content,
-                createdAt: post.createdDate ? new Date(post.createdDate).toISOString() : new Date().toISOString(),
-                editedAt: post.lastEdited ? new Date(post.lastEdited).toISOString() : null
-            }));
+        // Initialize from posts.js
+        function initializePosts() {
+            if (typeof posts !== 'undefined' && Array.isArray(posts)) {
+                console.log('Loading posts from posts.js:', posts.length, 'posts found');
+                return posts.map(post => ({
+                    title: post.title,
+                    content: post.content,
+                    createdAt: post.createdDate ? new Date(post.createdDate).toISOString() : new Date().toISOString(),
+                    editedAt: post.lastEdited ? new Date(post.lastEdited).toISOString() : null
+                }));
+            }
+            return [];
         }
         
-        // Merge with any posts in localStorage
+        // Load posts from posts.js first
+        blogPosts = initializePosts();
+        
+        // Then merge with any additional posts from localStorage
         const localPosts = JSON.parse(localStorage.getItem('blog-posts') || '[]');
-        blogPosts = [...localPosts, ...blogPosts];
+        
+        // Only add local posts that aren't already in posts.js (comparing by title and creation date)
+        const newLocalPosts = localPosts.filter(localPost => 
+            !blogPosts.some(blogPost => 
+                blogPost.title === localPost.title && 
+                blogPost.createdAt === localPost.createdAt
+            )
+        );
+        
+        blogPosts = [...blogPosts, ...newLocalPosts];
         localStorage.setItem('blog-posts', JSON.stringify(blogPosts));
         let posts = blogPosts;
         let editMode = false;
