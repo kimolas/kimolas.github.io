@@ -146,8 +146,65 @@
     <footer>
         &copy; 2025 Nick K. All rights reserved.
     </footer>
-    <script src="posts.js"></script>
     <script>
+        // Global variables
+        let posts = [];
+        let editMode = false;
+
+        // Function to initialize KaTeX
+        function initializeKaTeX() {
+            if (typeof renderMathInElement === 'function') {
+                const options = {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ],
+                    throwOnError: false,
+                    output: 'html',
+                    strict: false,
+                    macros: {
+                        "\\Ker": "\\operatorname{Ker}",
+                        "\\Ima": "\\operatorname{Im}",
+                        "\\Hom": "\\operatorname{Hom}",
+                        "\\End": "\\operatorname{End}",
+                        "\\Aut": "\\operatorname{Aut}",
+                        "\\Mor": "\\operatorname{Mor}",
+                        "\\Ob": "\\operatorname{Ob}",
+                        "\\id": "\\operatorname{id}",
+                        "\\Spec": "\\operatorname{Spec}",
+                        "\\Proj": "\\operatorname{Proj}",
+                        "\\Sing": "\\operatorname{Sing}",
+                        "\\Smooth": "\\operatorname{Smooth}",
+                        "\\Normal": "\\operatorname{Normal}",
+                        "\\Ann": "\\operatorname{Ann}",
+                        "\\tr": "\\operatorname{tr}",
+                        "\\rk": "\\operatorname{rk}",
+                        "\\GL": "\\operatorname{GL}",
+                        "\\SL": "\\operatorname{SL}",
+                        "\\SO": "\\operatorname{SO}",
+                        "\\Sp": "\\operatorname{Sp}",
+                        "\\PSL": "\\operatorname{PSL}",
+                        "\\GF": "\\operatorname{GF}",
+                        "\\R": "\\mathbb{R}",
+                        "\\C": "\\mathbb{C}",
+                        "\\Z": "\\mathbb{Z}",
+                        "\\Q": "\\mathbb{Q}",
+                        "\\N": "\\mathbb{N}",
+                        "\\F": "\\mathbb{F}"
+                    }
+                };
+                
+                try {
+                    renderMathInElement(document.body, options);
+                } catch (error) {
+                    console.error('Error rendering math:', error);
+                }
+            } else {
+                console.warn('KaTeX not loaded yet, retrying...');
+                setTimeout(initializeKaTeX, 100);
+            }
+        }
+
         // Blog post handling
         function loadPosts() {
             console.log('Starting post loading process...');
@@ -185,38 +242,109 @@
                 console.error('Error loading from localStorage:', error);
             }
 
-            console.log('Total posts loaded:', loadedPosts.length);
             return loadedPosts;
         }
-        
-        // Function to initialize KaTeX
-        function initializeKaTeX() {
-            if (typeof renderMathInElement === 'function') {
-                const options = {
-                    delimiters: [
-                        {left: "$$", right: "$$", display: true},
-                        {left: "$", right: "$", display: false}
-                    ],
-                    throwOnError: false,
-                    output: 'html'
-                };
-                renderMathInElement(document.body, options);
-                displayPosts();
-            } else {
-                console.warn('KaTeX not loaded yet, retrying...');
-                setTimeout(initializeKaTeX, 100);
-            }
+
+        // Initialize everything
+        function initialize() {
+            console.log('Initializing application...');
+            posts = loadPosts();
+            console.log('Posts loaded:', posts.length);
+            displayPosts();
+            initializeKaTeX();
         }
 
-        // Initialize everything when the page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load all posts
-            let blogPosts = loadPosts();
-            window.posts = blogPosts; // Store posts in window scope
+        // Edit and delete functions
+        window.editPost = function(index) {
+            const post = posts[index];
+            document.getElementById('title').value = post.title;
+            document.getElementById('content').value = post.content;
+            document.getElementById('preview-content').textContent = post.content;
             
-            // Initialize KaTeX
+            // Remove the old post
+            posts.splice(index, 1);
+            
+            // Update edited time
+            post.editedAt = new Date().toISOString();
+            
+            // Save and refresh
+            localStorage.setItem('blog-posts', JSON.stringify(posts));
+            displayPosts();
+            initializeKaTeX();
+        };
+
+        window.deletePost = function(index) {
+            if (confirm('Are you sure you want to delete this post?')) {
+                posts.splice(index, 1);
+                localStorage.setItem('blog-posts', JSON.stringify(posts));
+                displayPosts();
+            }
+        };
+
+        window.toggleEditMode = function() {
+            editMode = !editMode;
+            const editModeButton = document.getElementById('edit-mode-button');
+            const saveChangesButton = document.getElementById('save-changes-button');
+            const cancelChangesButton = document.getElementById('cancel-changes-button');
+            
+            editModeButton.textContent = editMode ? 'Disable Edit Mode' : 'Enable Edit Mode';
+            saveChangesButton.style.display = editMode ? 'inline' : 'none';
+            cancelChangesButton.style.display = editMode ? 'inline' : 'none';
+            
+            displayPosts();
+        };
+
+        window.saveChanges = function() {
+            localStorage.setItem('blog-posts', JSON.stringify(posts));
+            toggleEditMode();
+        };
+
+        window.cancelChanges = function() {
+            posts = loadPosts();
+            toggleEditMode();
+        };
+
+        // Add event listeners
+        document.getElementById('blog-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            
+            if (title && content) {
+                posts.push({
+                    title,
+                    content,
+                    createdAt: new Date().toISOString(),
+                    editedAt: null
+                });
+                
+                localStorage.setItem('blog-posts', JSON.stringify(posts));
+                
+                document.getElementById('title').value = '';
+                document.getElementById('content').value = '';
+                document.getElementById('preview-content').textContent = '';
+                
+                displayPosts();
+                initializeKaTeX();
+            }
+        });
+
+        document.getElementById('content').addEventListener('input', function(e) {
+            const preview = document.getElementById('preview-content');
+            preview.innerHTML = this.value;
             initializeKaTeX();
         });
+
+        // Wait for both DOM and posts.js to be ready
+        function startApp() {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initialize);
+            } else {
+                initialize();
+            }
+        }
+    </script>
+    <script src="posts.js" onload="startApp()"></script>
         let editMode = false;
 
         function displayPosts() {
@@ -245,20 +373,44 @@
                 }
                 
                 const li = document.createElement('li');
-                li.innerHTML = `
-                    <article class="blog-post" data-index="${index}">
-                        <h3>${post.title}</h3>
-                        <small>Created: ${new Date(post.createdAt).toLocaleDateString()}</small>
-                        ${post.editedAt ? `<br><small>Last edited: ${new Date(post.editedAt).toLocaleDateString()}</small>` : ''}
-                        <div class="post-content">${post.content}</div>
-                        ${editMode ? `
-                            <div class="edit-controls">
-                                <button onclick="editPost(${index})">Edit</button>
-                                <button onclick="deletePost(${index})">Delete</button>
-                            </div>
-                        ` : ''}
-                    </article>
+                const article = document.createElement('article');
+                article.className = 'blog-post';
+                article.dataset.index = index;
+                
+                const header = document.createElement('h3');
+                header.textContent = post.title;
+                article.appendChild(header);
+                
+                const dates = document.createElement('div');
+                dates.innerHTML = `
+                    <small>Created: ${new Date(post.createdAt).toLocaleDateString()}</small>
+                    ${post.editedAt ? `<br><small>Last edited: ${new Date(post.editedAt).toLocaleDateString()}</small>` : ''}
                 `;
+                article.appendChild(dates);
+                
+                const content = document.createElement('div');
+                content.className = 'post-content';
+                content.innerHTML = post.content;
+                article.appendChild(content);
+                
+                if (editMode) {
+                    const controls = document.createElement('div');
+                    controls.className = 'edit-controls';
+                    
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.onclick = () => window.editPost(index);
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.onclick = () => window.deletePost(index);
+                    
+                    controls.appendChild(editButton);
+                    controls.appendChild(deleteButton);
+                    article.appendChild(controls);
+                }
+                
+                li.appendChild(article);
                 blogList.appendChild(li);
             });
             
