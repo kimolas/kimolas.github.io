@@ -2,28 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <    <main>
-        <div class="left-column">
-            <section id="about" class="content-box">
-                <h2>About Me</h2>
-                <p>
-                    Welcome! I'm Nick, and I've been self-studying mathematics and physics. This site documents my journey, progress, and reflections.
-                </p>
-            </section>
-            <section id="progress" class="content-box">
-                <h2>Study Goals</h2>
-                <ul>
-                    <li><strong>Algebra:</strong> Commutative algebra</li>
-                    <li><strong>Analysis:</strong> Functional Analysis</li>
-                    <li><strong>Geometry:</strong> Differential geometry, algebraic topology, algebraic geometry</li>
-                    <li><strong>Physics:</strong> Quantum mechanics, quantum field theory, relativity, string theory</li>
-                    <!-- Add more fields as you progress -->
-                </ul>
-            </section>
-        </div>
-        <div class="right-column">
-            <section id="blog" class="content-box">
-                <h2>Blog</h2> & Physics Self-Study</title>
+    <title>Mathematics & Physics Self-Study</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- KaTeX dependencies -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
@@ -79,28 +58,37 @@
         }
         .post-content p { margin: 0.5em 0; }
         .post-content p:empty { display: none; }
-        .katex-display { overflow-x: auto; overflow-y: hidden; }
+        .math-display { margin: 1em 0; text-align: center; }
+        .katex-display { 
+            overflow-x: auto; 
+            overflow-y: hidden; 
+            padding: 1em 0; 
+        }
+        .katex { text-rendering: auto; }
         @media (max-width: 768px) {
             main {
                 grid-template-columns: 1fr;
                 padding: 1rem;
             }
         }
-        .edit-form { margin-top: 1rem; }
         label { display: block; margin-top: 1rem; }
-        input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
-        button { margin-top: 1rem; padding: 0.5rem 1rem; background: #2d3e50; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        input, textarea { 
+            width: 100%; 
+            padding: 0.5rem; 
+            margin-top: 0.5rem; 
+            box-sizing: border-box;
+        }
+        button { 
+            margin-top: 1rem; 
+            padding: 0.5rem 1rem; 
+            background: #2d3e50; 
+            color: #fff; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
         button:hover { background: #1a2533; }
         footer { text-align: center; padding: 2rem 1rem; color: #888; }
-        label { display: block; margin-top: 1rem; }
-        input, textarea { width: 100%; padding: 0.5rem; margin-top: 0.5rem; }
-        button { margin-top: 1rem; padding: 0.5rem 1rem; background: #2d3e50; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #1a2533; }
-        .post-content p { margin: 0.5em 0; }
-        .post-content p:empty { display: none; }
-        .math-display { margin: 1em 0; text-align: center; }
-        .katex-display { overflow-x: auto; overflow-y: hidden; padding: 1em 0; }
-        .katex { text-rendering: auto; }
     </style>
 </head>
 <body>
