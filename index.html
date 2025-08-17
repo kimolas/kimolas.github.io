@@ -157,6 +157,78 @@
         // Global variables
         let posts = [];
         let editMode = false;
+        
+        // Function to display posts
+        function displayPosts() {
+            console.log('Displaying posts...');
+            const blogList = document.getElementById('blog-list');
+            if (!blogList) {
+                console.error('Blog list element not found!');
+                return;
+            }
+            
+            if (!Array.isArray(posts)) {
+                console.error('Posts is not an array:', posts);
+                return;
+            }
+            
+            blogList.innerHTML = '';
+            console.log('Number of posts to display:', posts.length);
+            
+            // Sort posts by creation date
+            posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            posts.forEach((post, index) => {
+                if (!post || !post.title || !post.content) {
+                    console.warn('Invalid post data at index', index, post);
+                    return;
+                }
+                
+                const li = document.createElement('li');
+                const article = document.createElement('article');
+                article.className = 'blog-post';
+                article.dataset.index = index;
+                
+                const header = document.createElement('h3');
+                header.textContent = post.title;
+                article.appendChild(header);
+                
+                const dates = document.createElement('div');
+                dates.innerHTML = `
+                    <small>Created: ${new Date(post.createdAt).toLocaleDateString()}</small>
+                    ${post.editedAt ? `<br><small>Last edited: ${new Date(post.editedAt).toLocaleDateString()}</small>` : ''}
+                `;
+                article.appendChild(dates);
+                
+                const content = document.createElement('div');
+                content.className = 'post-content';
+                content.innerHTML = post.content;
+                article.appendChild(content);
+                
+                if (editMode) {
+                    const controls = document.createElement('div');
+                    controls.className = 'edit-controls';
+                    
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.onclick = () => window.editPost(index);
+                    
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.onclick = () => window.deletePost(index);
+                    
+                    controls.appendChild(editButton);
+                    controls.appendChild(deleteButton);
+                    article.appendChild(controls);
+                }
+                
+                li.appendChild(article);
+                blogList.appendChild(li);
+            });
+            
+            // Initialize KaTeX for the new content
+            initializeKaTeX();
+        }
 
         // Function to initialize KaTeX
         function initializeKaTeX() {
@@ -258,7 +330,6 @@
             posts = loadPosts();
             console.log('Posts loaded:', posts.length);
             displayPosts();
-            initializeKaTeX();
         }
 
         // Edit and delete functions
@@ -352,6 +423,5 @@
         }
     </script>
     <script src="posts.js" onload="startApp()"></script>
-    </script>
 </body>
 </html>
