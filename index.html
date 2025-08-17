@@ -145,5 +145,172 @@
     <footer>
         &copy; 2025 Nick K. All rights reserved.
     </footer>
+    <script src="posts.js"></script>
+    <script>
+        // Blog post handling
+        let blogPosts = [];
+        
+        // Convert posts from posts.js to the expected format
+        if (typeof posts !== 'undefined') {
+            blogPosts = posts.map(post => ({
+                title: post.title,
+                content: post.content,
+                createdAt: post.createdDate ? new Date(post.createdDate).toISOString() : new Date().toISOString(),
+                editedAt: post.lastEdited ? new Date(post.lastEdited).toISOString() : null
+            }));
+        }
+        
+        // Merge with any posts in localStorage
+        const localPosts = JSON.parse(localStorage.getItem('blog-posts') || '[]');
+        blogPosts = [...localPosts, ...blogPosts];
+        localStorage.setItem('blog-posts', JSON.stringify(blogPosts));
+        let posts = blogPosts;
+        let editMode = false;
+
+        function displayPosts() {
+            const blogList = document.getElementById('blog-list');
+            blogList.innerHTML = '';
+            
+            posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            posts.forEach((post, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <article class="blog-post" data-index="${index}">
+                        <h3>${post.title}</h3>
+                        <small>Created: ${new Date(post.createdAt).toLocaleDateString()}</small>
+                        ${post.editedAt ? `<br><small>Last edited: ${new Date(post.editedAt).toLocaleDateString()}</small>` : ''}
+                        <div class="post-content">${post.content}</div>
+                        ${editMode ? `
+                            <div class="edit-controls">
+                                <button onclick="editPost(${index})">Edit</button>
+                                <button onclick="deletePost(${index})">Delete</button>
+                            </div>
+                        ` : ''}
+                    </article>
+                `;
+                blogList.appendChild(li);
+            });
+            
+            // Render math in posts
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(blogList, {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ]
+                });
+            }
+        }
+
+        document.getElementById('blog-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            
+            if (title && content) {
+                posts.push({
+                    title,
+                    content,
+                    createdAt: new Date().toISOString(),
+                    editedAt: null
+                });
+                
+                localStorage.setItem('blog-posts', JSON.stringify(posts));
+                
+                document.getElementById('title').value = '';
+                document.getElementById('content').value = '';
+                document.getElementById('preview-content').innerHTML = '';
+                
+                displayPosts();
+            }
+        });
+
+        document.getElementById('content').addEventListener('input', function(e) {
+            const preview = document.getElementById('preview-content');
+            preview.innerHTML = e.target.value;
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(preview, {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ]
+                });
+            }
+        });
+
+        function toggleEditMode() {
+            editMode = !editMode;
+            const editModeButton = document.getElementById('edit-mode-button');
+            const saveChangesButton = document.getElementById('save-changes-button');
+            const cancelChangesButton = document.getElementById('cancel-changes-button');
+            
+            editModeButton.textContent = editMode ? 'Disable Edit Mode' : 'Enable Edit Mode';
+            saveChangesButton.style.display = editMode ? 'inline' : 'none';
+            cancelChangesButton.style.display = editMode ? 'inline' : 'none';
+            
+            displayPosts();
+        }
+
+        function editPost(index) {
+            const post = posts[index];
+            document.getElementById('title').value = post.title;
+            document.getElementById('content').value = post.content;
+            document.getElementById('preview-content').innerHTML = post.content;
+            
+            // Remove the old post
+            posts.splice(index, 1);
+            
+            // Update edited time when saving
+            post.editedAt = new Date().toISOString();
+            
+            // Save changes
+            localStorage.setItem('blog-posts', JSON.stringify(posts));
+            displayPosts();
+            
+            // Render math in preview
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.getElementById('preview-content'), {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ]
+                });
+            }
+        }
+
+        function deletePost(index) {
+            if (confirm('Are you sure you want to delete this post?')) {
+                posts.splice(index, 1);
+                localStorage.setItem('blog-posts', JSON.stringify(posts));
+                displayPosts();
+            }
+        }
+
+        function saveChanges() {
+            localStorage.setItem('blog-posts', JSON.stringify(posts));
+            toggleEditMode();
+        }
+
+        function cancelChanges() {
+            posts = JSON.parse(localStorage.getItem('blog-posts') || '[]');
+            toggleEditMode();
+        }
+
+        // Initial display
+        displayPosts();
+
+        // Initialize KaTeX auto-render after the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: "$$", right: "$$", display: true},
+                        {left: "$", right: "$", display: false}
+                    ]
+                });
+            }
+        });
+    </script>
 </body>
 </html>
